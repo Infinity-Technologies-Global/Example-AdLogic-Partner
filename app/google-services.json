@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1092846127014",
+    "project_id": "itg-template-android",
+    "storage_bucket": "itg-template-android.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1092846127014:android:cc687989e1797c4552f167",
+        "android_client_info": {
+          "package_name": "com.itg.template"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBaxagNN4O9GBodsZrf5_WQbDbGcve3MWQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
