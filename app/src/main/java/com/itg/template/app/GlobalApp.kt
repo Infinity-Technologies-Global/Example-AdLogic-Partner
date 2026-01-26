@@ -10,13 +10,14 @@ import android.content.res.Resources
 import android.graphics.drawable.Icon
 import android.os.Build
 import androidx.annotation.StringRes
-import com.ads.nkh.admob.Admob
-import com.ads.nkh.admob.AppOpenManager
-import com.ads.nkh.ads.NkhAd
-import com.ads.nkh.application.AdsMultiDexApplication
-import com.ads.nkh.billing.AppPurchase
-import com.ads.nkh.config.AdjustConfig
-import com.ads.nkh.config.NkhAdConfig
+import androidx.core.content.ContextCompat.getSystemService
+import com.ads.module.admob.Admob
+import com.ads.module.admob.AppOpenManager
+import com.ads.module.ads.ERainAd
+import com.ads.module.application.AdsMultiDexApplication
+import com.ads.module.billing.AppPurchase
+import com.ads.module.config.AdjustConfig
+import com.ads.module.config.ERainAdConfig
 import com.google.android.gms.ads.MobileAds
 import com.itg.template.BuildConfig
 import com.itg.template.R
@@ -61,20 +62,20 @@ class GlobalApp : AdsMultiDexApplication() {
 
     private fun initAds() {
         val environment =
-            if (BuildConfig.DEBUG) NkhAdConfig.ENVIRONMENT_DEVELOP else NkhAdConfig.ENVIRONMENT_PRODUCTION
-        mNkhAdConfig = NkhAdConfig(this, environment)
+            if (BuildConfig.DEBUG) ERainAdConfig.ENVIRONMENT_DEVELOP else ERainAdConfig.ENVIRONMENT_PRODUCTION
+        mERainAdConfig = ERainAdConfig(this, environment)
 
         // Optional: setup Adjust event
         val adjustConfig = AdjustConfig(true, resources.getString(R.string.adjust_token))
-        mNkhAdConfig.adjustConfig = adjustConfig
-        mNkhAdConfig.facebookClientToken = resources.getString(R.string.facebook_client_token)
-        mNkhAdConfig.adjustTokenTiktok = resources.getString(R.string.event_token)
-        mNkhAdConfig.intervalInterstitialAd = 35
+        mERainAdConfig.adjustConfig = adjustConfig
+        mERainAdConfig.facebookClientToken = resources.getString(R.string.facebook_client_token)
+        mERainAdConfig.adjustTokenTiktok = resources.getString(R.string.event_token)
+        mERainAdConfig.intervalInterstitialAd = 35
 
         // Optional: enable ads resume
-        mNkhAdConfig.idAdResume = ""
+        mERainAdConfig.idAdResume = ""
 
-        NkhAd.getInstance().init(this, mNkhAdConfig)
+        ERainAd.getInstance().init(this, mERainAdConfig)
 
         // Auto disable ad resume after user click ads and back to app
         Admob.getInstance().setDisableAdResumeWhenClickAds(true)
@@ -83,8 +84,9 @@ class GlobalApp : AdsMultiDexApplication() {
         AppOpenManager.getInstance().disableAppResumeWithActivity(SplashActivity::class.java)
         AppOpenManager.getInstance().disableAppResumeWithActivity(LanguageActivity::class.java)
         AppOpenManager.getInstance().disableAppResumeWithActivity(OnBoardingActivity::class.java)
-        NkhAd.getInstance().prepareLoadingAdsDialogLayout  = R.layout.layout_prepare_ads
-        NkhAd.getInstance().resumeLoadingDialogLayout  = R.layout.layout_welcome_back
+        // TODO: Check if ERainAd has these properties or if they have different names
+        // ERainAd.getInstance().prepareLoadingAdsDialogLayout  = R.layout.layout_prepare_ads
+        // ERainAd.getInstance().resumeLoadingDialogLayout  = R.layout.layout_welcome_back
     }
 
     private fun initShortCut() {

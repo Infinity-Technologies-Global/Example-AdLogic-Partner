@@ -74,7 +74,7 @@
 ऑनबोर्डिंग प्रवाह केवल उच्च-प्रभाव विज्ञापन प्लेसमेंट को रेंडर करता है जब Firebase Remote Config और SDK-साइड गेटिंग विधियां दोनों सहमत होती हैं कि स्लॉट दिखाना चाहिए। संदर्भ के रूप में नीचे दिए गए स्निपेट का उपयोग करें:
 
 ```
-if (NkhAd.getInstance().shouldDisplayNativeOnboardingFull1) {
+if (ERainAd.getInstance().shouldDisplayNativeOnboardingFull1) {
     AdsManager.loadNativeOnboardingFull(
         this,
         appSharedPref.firstOnBoarding,
@@ -83,10 +83,10 @@ if (NkhAd.getInstance().shouldDisplayNativeOnboardingFull1) {
 }
 ```
 
-- `native_onboarding_full_1`: `AdRemoteConfig.native_onboarding_fullscreen_1_3.isEnable == true` और `NkhAd.getInstance().shouldDisplayNativeOnboardingFull1 == true` की आवश्यकता है। किसी भी पुराने `organic` फ्लैग चेक को हटा दें।
-- `native_onboarding_full_2`: `AdRemoteConfig.native_onboarding_fullscreen_2_3.isEnable == true` और `NkhAd.getInstance().shouldDisplayNativeOnboardingFull2 == true` की आवश्यकता है। `organic` को हटा दें।
-- `inter_onboarding`: `AdRemoteConfig.inter_onboarding.isEnable == true` (या आपके कॉन्फ़िगरेशन द्वारा परिभाषित समकक्ष कुंजी) और `NkhAd.getInstance().shouldDisplayInterOnboarding() == true` की आवश्यकता है। `organic` को हटा दें।
-- विजेट अनइंस्टॉल बिल्ड: विजेट को सतह पर न लाएं जब `NkhAd.getInstance().shouldDisplayWidgetUninstall() == false`, रिमोट कॉन्फ़िगरेशन की परवाह किए बिना। किसी भी पुराने `organic` फ़िल्टर को इस विधेय से बदलें।
+- `native_onboarding_full_1`: `AdRemoteConfig.native_onboarding_fullscreen_1_3.isEnable == true` और `ERainAd.getInstance().shouldDisplayNativeOnboardingFull1 == true` की आवश्यकता है। किसी भी पुराने `organic` फ्लैग चेक को हटा दें।
+- `native_onboarding_full_2`: `AdRemoteConfig.native_onboarding_fullscreen_2_3.isEnable == true` और `ERainAd.getInstance().shouldDisplayNativeOnboardingFull2 == true` की आवश्यकता है। `organic` को हटा दें।
+- `inter_onboarding`: `AdRemoteConfig.inter_onboarding.isEnable == true` (या आपके कॉन्फ़िगरेशन द्वारा परिभाषित समकक्ष कुंजी) और `ERainAd.getInstance().shouldDisplayInterOnboarding() == true` की आवश्यकता है। `organic` को हटा दें।
+- विजेट अनइंस्टॉल बिल्ड: विजेट को सतह पर न लाएं जब `ERainAd.getInstance().shouldDisplayWidgetUninstall() == false`, रिमोट कॉन्फ़िगरेशन की परवाह किए बिना। किसी भी पुराने `organic` फ़िल्टर को इस विधेय से बदलें।
 
 ## साझा प्राथमिकताएं (`appSharedPref`)
 
@@ -147,7 +147,7 @@ RemoteConfigUtils.getAdRemoteConfig()
 
 ### विशिष्ट प्रवाह
 
-1. `GlobalApp` `RemoteConfigUtils.init()` को कॉल करता है और `NkhAd.getInstance().prepareLoadingAdsDialogLayout` को असाइन करता है।
+1. `GlobalApp` `RemoteConfigUtils.init()` को कॉल करता है और `ERainAd.getInstance().prepareLoadingAdsDialogLayout` को असाइन करता है।
 2. `AdRemoteConfig.initialize()` स्टार्टअप पर एक बार चलता है। प्रत्येक स्क्रीन `AdRemoteConfig.<key>` या एक्सटेंशन vals के माध्यम से प्लेसमेंट का संदर्भ देती है।
 3. UI परतें कभी भी कच्चे JSON को नहीं छूती हैं। वे `AdsManager.load...`/`show...` को कॉल करते हैं, या वैकल्पिक कंटेनर रेंडर करने से पहले `AdRemoteConfig.<key>.isEnable` की जांच करते हैं।
 

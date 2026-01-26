@@ -2,7 +2,7 @@ package com.itg.template.ui.component.onboarding.adapter
 
 import androidx.core.os.bundleOf
 import androidx.fragment.app.activityViewModels
-import com.ads.nkh.ads.NkhAd
+import com.ads.module.ads.ERainAd
 import com.bumptech.glide.Glide
 import com.itg.template.R
 import com.itg.template.ads.AdRemoteConfig
@@ -99,7 +99,7 @@ class OnboardingPageFragment : BaseFragment<FragmentOnboardingPageBinding>() {
                 mBinding.layoutAdsFull.visibleView()
                 mBinding.imgCloseAdsFull.visibleView()
                 mBinding.layoutContent.invisibleView()
-                NkhAd.getInstance().populateNativeAdView(
+                ERainAd.getInstance().populateNativeAdView(
                     requireActivity(),
                     nativeAd,
                     mBinding.layoutAdsFull,
@@ -116,7 +116,7 @@ class OnboardingPageFragment : BaseFragment<FragmentOnboardingPageBinding>() {
                 if (onboardingItem.isHasNativeOnPage1) AdsManager.nativeOnboarding1Ad else AdsManager.nativeOnboarding4Ad
             if (nativeAd != null) {
                 mBinding.layoutAds.visibleView()
-                NkhAd.getInstance().populateNativeAdView(
+                ERainAd.getInstance().populateNativeAdView(
                     requireActivity(),
                     nativeAd,
                     mBinding.layoutAds,

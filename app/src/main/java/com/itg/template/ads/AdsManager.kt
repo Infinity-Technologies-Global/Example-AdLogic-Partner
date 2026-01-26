@@ -9,12 +9,12 @@ import android.os.Build
 import android.view.LayoutInflater
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
-import com.ads.nkh.ads.NkhAd
-import com.ads.nkh.ads.wrapper.ApInterstitialAd
-import com.ads.nkh.ads.wrapper.ApNativeAd
-import com.ads.nkh.billing.AppPurchase
-import com.ads.nkh.funtion.AdCallback
-import com.ads.nkh.util.AppConstant
+import com.ads.module.ads.ERainAd
+import com.ads.module.ads.wrapper.ApInterstitialAd
+import com.ads.module.ads.wrapper.ApNativeAd
+import com.ads.module.billing.AppPurchase
+import com.ads.module.funtion.AdCallback
+import com.ads.module.util.AppConstant
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.LoadAdError
 import com.itg.template.ui.bases.ext.goneView
@@ -59,7 +59,7 @@ object AdsManager {
             preLoadNativeListener?.onLoadNativeFail()
             return
         }
-        NkhAd.getInstance()
+        ERainAd.getInstance()
             .loadNativeAdResultCallback(activity, config.id, layoutRes, object : AdCallback() {
                 override fun onNativeAdLoaded(nativeAd: ApNativeAd) {
                     super.onNativeAdLoaded(nativeAd)
@@ -115,7 +115,7 @@ object AdsManager {
             return
         }
         interOnboarding =
-            NkhAd.getInstance().getInterstitialAds(context, config.id, object : AdCallback() {})
+            ERainAd.getInstance().getInterstitialAds(context, config.id, object : AdCallback() {})
     }
 
     fun showInterOnboarding(context: Context, onAction: () -> Unit) {
@@ -123,7 +123,7 @@ object AdsManager {
         if (interstitial != null && interstitial.isReady && !AppPurchase.getInstance()
                 .isPurchased(context)
         ) {
-            NkhAd.getInstance().forceShowInterstitial(context, interstitial, object : AdCallback() {
+            ERainAd.getInstance().forceShowInterstitial(context, interstitial, object : AdCallback() {
                 override fun onNextAction() {
                     super.onNextAction()
                     onAction()
@@ -142,11 +142,11 @@ object AdsManager {
     ) {
         if (adUnitConfig.isEnable) {
             removeBannerView(activity, frAds)
-            if (isCollapse) NkhAd.getInstance().loadCollapsibleBanner(
+            if (isCollapse) ERainAd.getInstance().loadCollapsibleBanner(
                 activity,
                 adUnitConfig.id,
                 AppConstant.CollapsibleGravity.BOTTOM,
-                object : com.ads.nkh.funtion.AdCallback() {
+                object : com.ads.module.funtion.AdCallback() {
                     override fun onAdFailedToLoad(i: LoadAdError?) {
                         super.onAdFailedToLoad(i)
                         frAds.goneView()
@@ -154,8 +154,8 @@ object AdsManager {
                             .d("Load banner on ${activity.javaClass.simpleName} failed by : ${i?.message}")
                     }
                 })
-            else NkhAd.getInstance()
-                .loadBanner(activity, adUnitConfig.id, object : com.ads.nkh.funtion.AdCallback() {
+            else ERainAd.getInstance()
+                .loadBanner(activity, adUnitConfig.id, object : com.ads.module.funtion.AdCallback() {
                     override fun onAdFailedToLoad(i: LoadAdError?) {
                         super.onAdFailedToLoad(i)
                         frAds.goneView()
@@ -172,7 +172,7 @@ object AdsManager {
     @SuppressLint("InflateParams")
     private fun removeBannerView(activity: Activity, frAds: FrameLayout) {
         try {
-            val container = frAds.findViewById<FrameLayout>(com.ads.nkh.R.id.banner_container)
+            val container = frAds.findViewById<FrameLayout>(com.ads.module.R.id.banner_container)
             if (container != null) {
                 for (i in 0 until container.childCount) {
                     val view = container.getChildAt(i)
@@ -183,7 +183,7 @@ object AdsManager {
                 }
             }
             val shimmerFrameLayout = LayoutInflater.from(activity)
-                .inflate(com.ads.nkh.R.layout.layout_banner_control, null)
+                .inflate(com.ads.module.R.layout.layout_banner_control, null)
             frAds.removeAllViews()
             frAds.addView(shimmerFrameLayout)
         } catch (_: Exception) {

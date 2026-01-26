@@ -125,7 +125,7 @@
 │                     ONBOARDING ACTIVITY                                 │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │ 1. Check Should Display Native Full                              │  │
-│  │    Condition: NkhAd.getInstance()                                │  │
+│  │    Condition: ERainAd.getInstance()                                │  │
 │  │              .shouldDisplayNativeOnboardingFull1 == true          │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                │                                         │
@@ -174,7 +174,7 @@
 │  │  │ PAGE 3                                                     │  │  │
 │  │  │ - Show Native Full Ad (Fullscreen)                         │  │  │
 │  │  │ - AdsManager.nativeAdOnBoardingFull                        │  │  │
-│  │  │ - NkhAd.getInstance().shouldDisplayNativeOnboardingFull1   │  │  │
+│  │  │ - ERainAd.getInstance().shouldDisplayNativeOnboardingFull1   │  │  │
 │  │  │ - isHasNativeFull = true                                   │  │  │
 │  │  └───────────────────────────────────────────────────────────┘  │  │
 │  │                                │                                 │  │
@@ -292,7 +292,7 @@
 **Load Ad:**
 - Load Native Onboarding Full Ad (cho page 3):
   - `native_onboarding_fullscreen_1_3` hoặc `native_onboarding_fullscreen_2_3`
-  - Chỉ load nếu `NkhAd.getInstance().shouldDisplayNativeOnboardingFull1 == true`
+  - Chỉ load nếu `ERainAd.getInstance().shouldDisplayNativeOnboardingFull1 == true`
 
 **Show Ad:**
 - **Page 1**: Show Native Ad (`nativeOnboarding1Ad`) - nếu có

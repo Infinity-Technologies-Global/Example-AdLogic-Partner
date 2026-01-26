@@ -5,15 +5,15 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
 import androidx.core.view.updateLayoutParams
-import com.ads.nkh.admob.Admob
-import com.ads.nkh.ads.NkhAd
-import com.ads.nkh.ads.wrapper.ApNativeAd
+import com.ads.module.admob.Admob
+import com.ads.module.ads.ERainAd
+import com.ads.module.ads.wrapper.ApNativeAd
 import com.facebook.shimmer.ShimmerFrameLayout
 import com.google.android.gms.ads.nativead.NativeAdView
 import com.itg.template.R
 import com.itg.template.ui.bases.ext.dpToPx
 
-fun NkhAd.populateNativeAdView(
+fun ERainAd.populateNativeAdView(
     context: Context,
     apNativeAd: ApNativeAd,
     adPlaceHolder: FrameLayout,

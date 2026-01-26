@@ -77,7 +77,7 @@ Example:
 The onboarding flow only renders high-impact ad placements when both Firebase Remote Config and the SDK-side gating methods agree that the slot should show. Use the snippet below as a reference:
 
 ```
-if (NkhAd.getInstance().shouldDisplayNativeOnboardingFull1) {
+if (ERainAd.getInstance().shouldDisplayNativeOnboardingFull1) {
     AdsManager.loadNativeOnboardingFull(
         this,
         appSharedPref.firstOnBoarding,
@@ -86,10 +86,10 @@ if (NkhAd.getInstance().shouldDisplayNativeOnboardingFull1) {
 }
 ```
 
-- `native_onboarding_full_1`: require `AdRemoteConfig.native_onboarding_fullscreen_1_3.isEnable == true` and `NkhAd.getInstance().shouldDisplayNativeOnboardingFull1 == true`. Remove any legacy `organic` flag checks.
-- `native_onboarding_full_2`: require `AdRemoteConfig.native_onboarding_fullscreen_2_3.isEnable == true` and `NkhAd.getInstance().shouldDisplayNativeOnboardingFull2 == true`. Remove `organic`.
-- `inter_onboarding`: require `AdRemoteConfig.inter_onboarding.isEnable == true` (or the equivalent key defined by your config) and `NkhAd.getInstance().shouldDisplayInterOnboarding() == true`. Remove `organic`.
-- Widget uninstall builds: do not surface the widget when `NkhAd.getInstance().shouldDisplayWidgetUninstall() == false`, regardless of remote configuration. Replace any legacy `organic` filters with this predicate.
+- `native_onboarding_full_1`: require `AdRemoteConfig.native_onboarding_fullscreen_1_3.isEnable == true` and `ERainAd.getInstance().shouldDisplayNativeOnboardingFull1 == true`. Remove any legacy `organic` flag checks.
+- `native_onboarding_full_2`: require `AdRemoteConfig.native_onboarding_fullscreen_2_3.isEnable == true` and `ERainAd.getInstance().shouldDisplayNativeOnboardingFull2 == true`. Remove `organic`.
+- `inter_onboarding`: require `AdRemoteConfig.inter_onboarding.isEnable == true` (or the equivalent key defined by your config) and `ERainAd.getInstance().shouldDisplayInterOnboarding() == true`. Remove `organic`.
+- Widget uninstall builds: do not surface the widget when `ERainAd.getInstance().shouldDisplayWidgetUninstall() == false`, regardless of remote configuration. Replace any legacy `organic` filters with this predicate.
 
 ## Shared Preferences (`appSharedPref`)
 
@@ -150,7 +150,7 @@ This rehydrates `AdRemoteConfig` at runtime with the new placements.
 
 ### Typical Flow
 
-1. `GlobalApp` calls `RemoteConfigUtils.init()` and assigns `NkhAd.getInstance().prepareLoadingAdsDialogLayout`.
+1. `GlobalApp` calls `RemoteConfigUtils.init()` and assigns `ERainAd.getInstance().prepareLoadingAdsDialogLayout`.
 2. `AdRemoteConfig.initialize()` runs once on startup. Every screen references placements via `AdRemoteConfig.<key>` or the extension vals.
 3. UI layers never touch raw JSON. They call `AdsManager.load...`/`show...`, or check `AdRemoteConfig.<key>.isEnable` before rendering optional containers.
 

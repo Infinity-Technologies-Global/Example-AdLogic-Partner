@@ -4,7 +4,7 @@ import androidx.activity.viewModels
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.CompositePageTransformer
 import androidx.viewpager2.widget.MarginPageTransformer
-import com.ads.nkh.ads.NkhAd
+import com.ads.module.ads.ERainAd
 import com.itg.template.R
 import com.itg.template.ads.AdsManager
 import com.itg.template.ads.PreLoadNativeListener
@@ -33,7 +33,7 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>(), PreLoadNat
 
     override fun initViews() {
         AdsManager.setPreLoadNativeCallback(this)
-        if (NkhAd.getInstance().shouldDisplayNativeOnboardingFull1) {
+        if (ERainAd.getInstance().shouldDisplayNativeOnboardingFull1) {
             AdsManager.loadNativeOnboardingFull(
                 this,
                 appSharedPref.firstOnBoarding,
@@ -41,7 +41,7 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>(), PreLoadNat
             )
         }
 
-        if (NkhAd.getInstance().shouldDisplayInterOnboarding) {
+        if (ERainAd.getInstance().shouldDisplayInterOnboarding) {
             AdsManager.loadInterOnboarding(this)
         }
 

@@ -7,7 +7,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.util.Log
 import android.widget.Toast
-import com.ads.nkh.admob.AppOpenManager
+import com.ads.module.admob.AppOpenManager
 import com.itg.template.BuildConfig
 import com.itg.template.R
 import com.itg.template.app.AppConstants

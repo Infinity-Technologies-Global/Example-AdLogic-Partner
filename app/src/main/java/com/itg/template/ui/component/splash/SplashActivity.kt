@@ -4,10 +4,10 @@ import android.os.CountDownTimer
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
-import com.ads.nkh.admob.Admob
-import com.ads.nkh.admob.AppOpenManager
-import com.ads.nkh.ads.NkhAd
-import com.ads.nkh.funtion.AdCallback
+import com.ads.module.admob.Admob
+import com.ads.module.admob.AppOpenManager
+import com.ads.module.ads.ERainAd
+import com.ads.module.funtion.AdCallback
 import com.itg.template.R
 import com.itg.template.ads.AdRemoteConfig
 import com.itg.template.ads.AdsManager.loadNativeLanguage
@@ -100,8 +100,8 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
         loadNativeLanguage(this, appSharedPref.firstLanguage, R.layout.layout_native_language)
 
         if (AdRemoteConfig.inter_splash.isEnable && isNetwork(this@SplashActivity)) {
-//            Admob.getInstance().setOpenActivityAfterShowInterAds(false) //TODO A/B Testing for increase showrate
-            NkhAd.getInstance().loadSplashInterstitialAds(
+            Admob.getInstance().setOpenActivityAfterShowInterAds(false)
+            ERainAd.getInstance().loadSplashInterstitialAds(
                 this,
                 AdRemoteConfig.inter_splash.id,
                 30000,
@@ -147,7 +147,7 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
 
     override fun onResume() {
         super.onResume()
-        NkhAd.getInstance()
+        ERainAd.getInstance()
             .onCheckShowSplashWhenFail(this@SplashActivity, object : AdCallback() {
                 override fun onNextAction() {
                     super.onNextAction()

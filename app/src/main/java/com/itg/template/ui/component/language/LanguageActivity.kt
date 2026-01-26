@@ -2,7 +2,7 @@ package com.itg.template.ui.component.language
 
 import android.os.Handler
 import android.os.Looper
-import com.ads.nkh.ads.NkhAd
+import com.ads.module.ads.ERainAd
 import com.itg.template.R
 import com.itg.template.ads.AdsManager
 import com.itg.template.ads.PreLoadNativeListener
@@ -150,7 +150,7 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding>(), PreLoadNativeL
 
         mBinding.flAds.visibleView()
         populateNativeLanguage = true
-        NkhAd.getInstance().populateNativeAdView(
+        ERainAd.getInstance().populateNativeAdView(
             this,
             ad,
             mBinding.flAds,
@@ -169,7 +169,7 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding>(), PreLoadNativeL
 
         mBinding.flAds.visibleView()
         populateNativeLanguageClick = true
-        NkhAd.getInstance().populateNativeAdView(
+        ERainAd.getInstance().populateNativeAdView(
             this,
             ad,
             mBinding.flAds,

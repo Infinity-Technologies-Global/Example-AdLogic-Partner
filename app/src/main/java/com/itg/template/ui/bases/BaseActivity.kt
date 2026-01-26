@@ -19,9 +19,9 @@ import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
-import com.ads.nkh.admob.Admob
-import com.ads.nkh.ads.wrapper.ApInterstitialAd
-import com.ads.nkh.funtion.AdCallback
+import com.ads.module.admob.Admob
+import com.ads.module.ads.wrapper.ApInterstitialAd
+import com.ads.module.funtion.AdCallback
 import com.itg.template.R
 import com.itg.template.ads.AdUnitConfig
 import com.itg.template.ads.AdsManager

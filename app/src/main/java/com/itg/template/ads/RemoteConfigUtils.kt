@@ -1,7 +1,7 @@
 package com.itg.template.ads
 
 import android.content.Context
-import com.ads.nkh.ads.NkhAd
+import com.ads.module.ads.ERainAd
 import com.google.firebase.Firebase
 
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
