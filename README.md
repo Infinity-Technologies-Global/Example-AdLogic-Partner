@@ -1,5 +1,7 @@
 ![Ad Loading and Display Flow](img.png)
 
+**Language / Ngôn ngữ / भाषा:** [English](README.md) | [Tiếng Việt](README.vi.md) | [हिन्दी](README.hi.md)
+
 # Infinity Ads And Preferences Guide
 
 
