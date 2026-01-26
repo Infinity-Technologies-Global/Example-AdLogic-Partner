@@ -29,7 +29,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.Listener {
 
     private var getConfigSuccess = false
-    private var showLanguageNextTime = false
+    private var showLanguageNextTime = true
     private var simpleExoPlayer: ExoPlayer? = null
     private lateinit var consentHandler: ConsentHandler
     private fun shouldShowLanguageNextTime() = showLanguageNextTime

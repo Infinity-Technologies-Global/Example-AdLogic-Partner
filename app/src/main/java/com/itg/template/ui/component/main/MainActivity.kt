@@ -11,7 +11,6 @@ import com.itg.template.ads.AdRemoteConfig
 import com.itg.template.ads.AdsManager
 import com.itg.template.ads.RemoteConfigUtils
 import com.itg.template.ads.banner_home
-import com.itg.template.ads.banner_splash
 import com.itg.template.data.model.ForceUpdateConfig
 import com.itg.template.databinding.ActivityMainBinding
 import com.itg.template.ui.bases.BaseActivity
@@ -142,13 +141,13 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         if (!AdRemoteConfig.isInitialized()) {
             AdRemoteConfig.initializeFromAssets(this)
         }
-        AdsManager.loadInterSplash(this)
+        AdsManager.loadInterOnboarding(this)
     }
 
     private fun showInterstitial() {
-        AdsManager.showInterSplash(this) {
+        AdsManager.showInterOnboarding(this) {
             Timber.d("Interstitial shown or skipped")
-            AdsManager.loadInterSplash(this)
+            AdsManager.loadInterOnboarding(this)
         }
     }
 

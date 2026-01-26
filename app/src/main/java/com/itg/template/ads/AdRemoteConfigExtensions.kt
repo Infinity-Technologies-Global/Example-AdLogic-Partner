@@ -39,5 +39,8 @@ val AdRemoteConfig.Companion.native_onboarding_fullscreen_1_3: AdUnitConfig
 val AdRemoteConfig.Companion.native_onboarding_fullscreen_2_3: AdUnitConfig
     get() = getInstance().native_onboarding_fullscreen_2_3
 
+val AdRemoteConfig.Companion.inter_onboarding: AdUnitConfig
+    get() = getInstance().inter_onboarding
+
 val AdRemoteConfig.Companion.banner_home: AdUnitConfig
     get() = getInstance().banner_home

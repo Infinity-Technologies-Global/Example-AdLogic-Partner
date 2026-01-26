@@ -82,6 +82,10 @@
     "heightCTA": 40,
     "positionCTA": "BOTTOM"
   },
+  "inter_onboarding": {
+    "id": "ca-app-pub-7208941695689653/1200371069",
+    "isEnable": true
+  },
   "banner_home": {
     "id": "ca-app-pub-3940256099942544/9214589741",
     "isEnable": true,

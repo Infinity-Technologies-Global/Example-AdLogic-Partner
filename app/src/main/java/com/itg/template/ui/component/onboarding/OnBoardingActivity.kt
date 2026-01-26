@@ -41,6 +41,10 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>(), PreLoadNat
             )
         }
 
+        if (NkhAd.getInstance().shouldDisplayInterOnboarding) {
+            AdsManager.loadInterOnboarding(this)
+        }
+
         initPage()
         initOnboardingItems()
     }
@@ -83,7 +87,7 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>(), PreLoadNat
                 title = R.string.onboarding_title_1,
                 description = R.string.onboarding_title_1,
                 textButton = R.string.next,
-                imageResId = R.drawable.ic_vietnamese,
+                imageResId = R.mipmap.ic_launcher,
                 positionIndicator = 0,
                 isHasNativeOnPage1 = true
             )
@@ -93,7 +97,7 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>(), PreLoadNat
                 title = R.string.onboarding_title_2,
                 description = R.string.onboarding_title_2,
                 textButton = R.string.next,
-                imageResId = R.drawable.ic_vietnamese,
+                imageResId = R.mipmap.ic_launcher,
                 positionIndicator = 1
             )
         )
@@ -102,7 +106,7 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>(), PreLoadNat
                 title = R.string.onboarding_title_3,
                 description = R.string.onboarding_title_3,
                 textButton = R.string.next,
-                imageResId = R.drawable.ic_vietnamese,
+                imageResId = R.mipmap.ic_launcher,
                 positionIndicator = 2,
                 isHasNativeFull = true
 
@@ -113,7 +117,7 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>(), PreLoadNat
                 title = R.string.onboarding_title_4,
                 description = R.string.onboarding_title_4,
                 textButton = R.string.next,
-                imageResId = R.drawable.ic_vietnamese,
+                imageResId = R.mipmap.ic_launcher,
                 positionIndicator = 3,
                 isHasNativeOnPage4 = true
             )
@@ -127,8 +131,11 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>(), PreLoadNat
 //            finish()
 //        }
         appSharedPref.firstOnBoarding = false
-        Routes.startMainActivity(this)
-        finish()
+        AdsManager.showInterOnboarding(this, {
+            Routes.startMainActivity(this)
+            finish()
+        })
+
     }
 
     override fun onLoadNativeSuccess() {

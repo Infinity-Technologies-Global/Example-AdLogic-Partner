@@ -45,71 +45,84 @@ object AdsManager {
 
     private var interSplashAd: ApInterstitialAd? = null
 
+    private var interOnboarding: ApInterstitialAd? = null
+
     private fun loadNativeConfig(
         activity: Activity,
         config: AdUnitConfig,
         layoutRes: Int,
-        onLoaded: (ApNativeAd) -> Unit
+        onLoaded: (ApNativeAd) -> Unit,
     ) {
-        if (!config.isEnable || AppPurchase.getInstance().isPurchased(activity) || !activity.isNetworkAvailable()) {
+        if (!config.isEnable || AppPurchase.getInstance()
+                .isPurchased(activity) || !activity.isNetworkAvailable()
+        ) {
             preLoadNativeListener?.onLoadNativeFail()
             return
         }
-        NkhAd.getInstance().loadNativeAdResultCallback(activity, config.id, layoutRes, object : AdCallback() {
-            override fun onNativeAdLoaded(nativeAd: ApNativeAd) {
-                super.onNativeAdLoaded(nativeAd)
-                onLoaded(nativeAd)
-                preLoadNativeListener?.onLoadNativeSuccess()
-            }
+        NkhAd.getInstance()
+            .loadNativeAdResultCallback(activity, config.id, layoutRes, object : AdCallback() {
+                override fun onNativeAdLoaded(nativeAd: ApNativeAd) {
+                    super.onNativeAdLoaded(nativeAd)
+                    onLoaded(nativeAd)
+                    preLoadNativeListener?.onLoadNativeSuccess()
+                }
 
-            override fun onAdFailedToLoad(adError: LoadAdError?) {
-                super.onAdFailedToLoad(adError)
-                preLoadNativeListener?.onLoadNativeFail()
-            }
-        })
+                override fun onAdFailedToLoad(adError: LoadAdError?) {
+                    super.onAdFailedToLoad(adError)
+                    preLoadNativeListener?.onLoadNativeFail()
+                }
+            })
     }
 
     fun loadNativeLanguage(activity: Activity, isFirst: Boolean, layoutRes: Int) {
-        val mainConfig = if (isFirst) AdRemoteConfig.native_language_1 else AdRemoteConfig.native_language_2
+        val mainConfig =
+            if (isFirst) AdRemoteConfig.native_language_1 else AdRemoteConfig.native_language_2
         loadNativeConfig(activity, mainConfig, layoutRes) { nativeAd ->
             nativeLanguageAd = nativeAd
         }
-        val clickConfig = if (isFirst) AdRemoteConfig.native_language_1_click else AdRemoteConfig.native_language_2_click
+        val clickConfig =
+            if (isFirst) AdRemoteConfig.native_language_1_click else AdRemoteConfig.native_language_2_click
         loadNativeConfig(activity, clickConfig, layoutRes) { nativeAd ->
             nativeLanguageClickAd = nativeAd
         }
     }
 
     fun loadNativeOnboarding(activity: Activity, isFirst: Boolean, layoutRes: Int) {
-        val onboarding1Config = if (isFirst) AdRemoteConfig.native_onboarding_1_1 else AdRemoteConfig.native_onboarding_2_1
+        val onboarding1Config =
+            if (isFirst) AdRemoteConfig.native_onboarding_1_1 else AdRemoteConfig.native_onboarding_2_1
         loadNativeConfig(activity, onboarding1Config, layoutRes) { nativeAd ->
             nativeOnboarding1Ad = nativeAd
         }
-        val onboarding4Config = if (isFirst) AdRemoteConfig.native_onboarding_1_4 else AdRemoteConfig.native_onboarding_2_4
+        val onboarding4Config =
+            if (isFirst) AdRemoteConfig.native_onboarding_1_4 else AdRemoteConfig.native_onboarding_2_4
         loadNativeConfig(activity, onboarding4Config, layoutRes) { nativeAd ->
             nativeOnboarding4Ad = nativeAd
         }
     }
 
     fun loadNativeOnboardingFull(activity: Activity, isFirst: Boolean, layoutRes: Int) {
-        val onboardingFullConfig = if (isFirst) AdRemoteConfig.native_onboarding_fullscreen_1_3 else AdRemoteConfig.native_onboarding_fullscreen_2_3
+        val onboardingFullConfig =
+            if (isFirst) AdRemoteConfig.native_onboarding_fullscreen_1_3 else AdRemoteConfig.native_onboarding_fullscreen_2_3
         loadNativeConfig(activity, onboardingFullConfig, layoutRes) { nativeAd ->
             nativeAdOnBoardingFull = nativeAd
         }
     }
 
-    fun loadInterSplash(context: Context) {
-        val config = AdRemoteConfig.inter_splash
+    fun loadInterOnboarding(context: Context) {
+        val config = AdRemoteConfig.inter_onboarding
         if (!config.isEnable || AppPurchase.getInstance().isPurchased(context)) {
-            interSplashAd = null
+            interOnboarding = null
             return
         }
-        interSplashAd = NkhAd.getInstance().getInterstitialAds(context, config.id, object : AdCallback() {})
+        interOnboarding =
+            NkhAd.getInstance().getInterstitialAds(context, config.id, object : AdCallback() {})
     }
 
-    fun showInterSplash(context: Context, onAction: () -> Unit) {
-        val interstitial = interSplashAd
-        if (interstitial != null && interstitial.isReady && !AppPurchase.getInstance().isPurchased(context)) {
+    fun showInterOnboarding(context: Context, onAction: () -> Unit) {
+        val interstitial = interOnboarding
+        if (interstitial != null && interstitial.isReady && !AppPurchase.getInstance()
+                .isPurchased(context)
+        ) {
             NkhAd.getInstance().forceShowInterstitial(context, interstitial, object : AdCallback() {
                 override fun onNextAction() {
                     super.onNextAction()
@@ -125,7 +138,7 @@ object AdsManager {
         activity: AppCompatActivity,
         adUnitConfig: AdUnitConfig,
         frAds: FrameLayout,
-        isCollapse: Boolean
+        isCollapse: Boolean,
     ) {
         if (adUnitConfig.isEnable) {
             removeBannerView(activity, frAds)
@@ -137,7 +150,8 @@ object AdsManager {
                     override fun onAdFailedToLoad(i: LoadAdError?) {
                         super.onAdFailedToLoad(i)
                         frAds.goneView()
-                        Timber.tag("AdsManager_Banner").d("Load banner on ${activity.javaClass.simpleName} failed by : ${i?.message}")
+                        Timber.tag("AdsManager_Banner")
+                            .d("Load banner on ${activity.javaClass.simpleName} failed by : ${i?.message}")
                     }
                 })
             else NkhAd.getInstance()
@@ -172,7 +186,8 @@ object AdsManager {
                 .inflate(com.ads.nkh.R.layout.layout_banner_control, null)
             frAds.removeAllViews()
             frAds.addView(shimmerFrameLayout)
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+        }
     }
 
     fun clearAll() {
@@ -182,16 +197,18 @@ object AdsManager {
         nativeOnboarding4Ad = null
         nativeAdOnBoardingFull = null
         interSplashAd = null
+        interOnboarding = null
     }
 
     private fun Context.isNetworkAvailable(): Boolean {
-        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
+        val connectivityManager =
+            getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val network = connectivityManager.activeNetwork ?: return false
             val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
         } else {
             @Suppress("DEPRECATION")
             connectivityManager.activeNetworkInfo?.isConnectedOrConnecting == true

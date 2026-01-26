@@ -165,6 +165,10 @@ data class AdRemoteConfig(
     val native_onboarding_fullscreen_2_3: AdUnitConfig
         get() = getAdUnit("native_onboarding_fullscreen_2_3")
 
+    val inter_onboarding: AdUnitConfig
+        get() = getAdUnit("inter_onboarding")
+
+
     val banner_home: AdUnitConfig
         get() = getAdUnit("banner_home")
 }
