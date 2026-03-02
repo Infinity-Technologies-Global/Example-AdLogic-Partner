@@ -80,6 +80,8 @@ object AdsManager {
         loadNativeConfig(activity, mainConfig, layoutRes) { nativeAd ->
             nativeLanguageAd = nativeAd
         }
+    }
+    fun loadNativeLanguageClick(activity: Activity, isFirst: Boolean, layoutRes: Int) {
         val clickConfig =
             if (isFirst) AdRemoteConfig.native_language_1_click else AdRemoteConfig.native_language_2_click
         loadNativeConfig(activity, clickConfig, layoutRes) { nativeAd ->
@@ -87,17 +89,21 @@ object AdsManager {
         }
     }
 
-    fun loadNativeOnboarding(activity: Activity, isFirst: Boolean, layoutRes: Int) {
+    fun loadNativeOnboarding1(activity: Activity, isFirst: Boolean, layoutRes: Int) {
         val onboarding1Config =
             if (isFirst) AdRemoteConfig.native_onboarding_1_1 else AdRemoteConfig.native_onboarding_2_1
         loadNativeConfig(activity, onboarding1Config, layoutRes) { nativeAd ->
             nativeOnboarding1Ad = nativeAd
         }
+
+    }
+    fun loadNativeOnboarding4(activity: Activity, isFirst: Boolean, layoutRes: Int) {
         val onboarding4Config =
             if (isFirst) AdRemoteConfig.native_onboarding_1_4 else AdRemoteConfig.native_onboarding_2_4
         loadNativeConfig(activity, onboarding4Config, layoutRes) { nativeAd ->
             nativeOnboarding4Ad = nativeAd
         }
+
     }
 
     fun loadNativeOnboardingFull(activity: Activity, isFirst: Boolean, layoutRes: Int) {

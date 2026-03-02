@@ -32,6 +32,11 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>(), PreLoadNat
     private val onboardingItems = mutableListOf<OnboardingItem>()
 
     override fun initViews() {
+        AdsManager.loadNativeOnboarding4(
+            this,
+            appSharedPref.firstOnBoarding,
+            R.layout.layout_native_onboarding
+        )
         AdsManager.setPreLoadNativeCallback(this)
         if (ERainAd.getInstance().shouldDisplayNativeOnboardingFull1) {
             AdsManager.loadNativeOnboardingFull(

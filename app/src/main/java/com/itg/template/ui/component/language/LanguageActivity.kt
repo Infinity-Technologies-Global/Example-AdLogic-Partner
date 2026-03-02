@@ -27,6 +27,7 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding>(), PreLoadNativeL
     private var timeDelayDoneButton = DEFAULT_TIME_DELAY_SHOW_LANGUAGE_DONE_BUTTON
     private var isFromSetting = false
     override val shouldShowNavigationBars = RemoteConfigUtils.getOnShowNavigationButton()
+    private var shouldShowNativeLanguageClickWhenLoaded = false
 
     companion object {
         const val EXTRA_FROM_SETTING = "extra_from_setting"
@@ -103,7 +104,7 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding>(), PreLoadNativeL
         if (fromSetting) {
             mBinding.flAds.goneView()
         } else {
-            AdsManager.loadNativeOnboarding(
+            AdsManager.loadNativeOnboarding1(
                 this,
                 appSharedPref.firstOnBoarding,
                 R.layout.layout_native_onboarding
@@ -163,10 +164,17 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding>(), PreLoadNativeL
         if (populateNativeLanguageClick) return
 
         val ad = AdsManager.nativeLanguageClickAd
-        if (ad == null || !isNetwork()) {
+        if (!isNetwork()) {
+            shouldShowNativeLanguageClickWhenLoaded = false
+            return
+        }
+        if (ad == null) {
+            shouldShowNativeLanguageClickWhenLoaded = true
+            mBinding.flAds.visibleView()
             return
         }
 
+        shouldShowNativeLanguageClickWhenLoaded = false
         mBinding.flAds.visibleView()
         populateNativeLanguageClick = true
         ERainAd.getInstance().populateNativeAdView(
@@ -178,12 +186,17 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding>(), PreLoadNativeL
     }
 
     override fun onLoadNativeSuccess() {
+        if (shouldShowNativeLanguageClickWhenLoaded && !populateNativeLanguageClick) {
+            showNativeLanguageClick()
+            return
+        }
         if (!populateNativeLanguage && !populateNativeLanguageClick) {
             showNativeLanguage()
         }
     }
 
     override fun onLoadNativeFail() {
+        shouldShowNativeLanguageClickWhenLoaded = false
         if (!populateNativeLanguage && !populateNativeLanguageClick) {
             mBinding.flAds.goneView()
         }

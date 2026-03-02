@@ -11,6 +11,7 @@ import com.ads.module.funtion.AdCallback
 import com.itg.template.R
 import com.itg.template.ads.AdRemoteConfig
 import com.itg.template.ads.AdsManager.loadNativeLanguage
+import com.itg.template.ads.AdsManager.loadNativeLanguageClick
 import com.itg.template.ads.RemoteConfigUtils
 import com.itg.template.ads.inter_splash
 import com.itg.template.ads.open_resume
@@ -98,6 +99,7 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
     private fun checkRemoteConfigResult() {
         AdRemoteConfig.initialize(this, RemoteConfigUtils.getAdRemoteConfig())
         loadNativeLanguage(this, appSharedPref.firstLanguage, R.layout.layout_native_language)
+        loadNativeLanguageClick(this, appSharedPref.firstLanguage, R.layout.layout_native_language_click)
 
         if (AdRemoteConfig.inter_splash.isEnable && isNetwork(this@SplashActivity)) {
             Admob.getInstance().setOpenActivityAfterShowInterAds(false)
