@@ -90,5 +90,30 @@
     "id": "ca-app-pub-3940256099942544/9214589741",
     "isEnable": true,
     "reloadIntervalSeconds": 30
+  },
+  "native_survey": {
+    "id": "ca-app-pub-3940256099942544/2247696110",
+    "isEnable": true,
+    "colorCTA": "default",
+    "heightCTA": 40,
+    "positionCTA": "BOTTOM"
+  },
+  "native_confirm_uninstall": {
+    "id": "ca-app-pub-3940256099942544/2247696110",
+    "isEnable": true,
+    "colorCTA": "default",
+    "heightCTA": 40,
+    "positionCTA": "BOTTOM"
+  },
+  "native_welcome": {
+    "id": "ca-app-pub-3940256099942544/2247696110",
+    "isEnable": false,
+    "colorCTA": "default",
+    "heightCTA": 40,
+    "positionCTA": "BOTTOM"
+  },
+  "inter_welcome": {
+    "id": "ca-app-pub-3940256099942544/1033173712",
+    "isEnable": false
   }
 }

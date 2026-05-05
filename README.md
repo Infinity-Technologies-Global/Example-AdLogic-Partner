@@ -145,21 +145,103 @@ This rehydrates `AdRemoteConfig` at runtime with the new placements.
 | `AdRemoteConfig.kt` | Loads the JSON assets/Remote Config payload and exposes typed getters per placement. |
 | `AdRemoteConfigExtensions.kt` | Convenience val extensions for strongly typed keys like `inter_splash`, `native_language_1`, etc. |
 | `RemoteConfigUtils.kt` | Bootstraps Firebase Remote Config, pushes local defaults, exposes helper getters (`getAdRemoteConfig()`, `getAdLanguageLayout()`, `getForceUpdateConfig()`). |
-| `AdsManager.kt` | Centralized loader/cacher for all ad objects (interstitial, native, onboarding full-screen). Observes network conditions and purchase state. |
-| `AdExtension.kt` | Helpers to populate Google Native ads into custom layouts (CTA size, shimmer handling). |
+| `AdsManager.kt` | Centralized loader for all ads. Every native ad slot exposes a `MutableLiveData<ApNativeAd?>` for Activity/Fragment observation. Interstitials are loaded/shown via dedicated methods. Observes network conditions and purchase state. |
+| `AdExtension.kt` | Top-level `populateNativeAdView()` automatically retrieves `heightCTA`/`colorCTA` from `AdsManager.getAdConfig(ad)`. ERainAd extension function retained for backward compatibility. |
+
+### Native Ad: LiveData Pattern
+
+Since migrating to the new template, **all native ads are exposed via `MutableLiveData`** instead of the old variable cache + callback interface.
+
+**How to load and observe a native ad in an Activity:**
+
+```kotlin
+// 1. Trigger load in initViews() (optional 100ms delay to avoid jank)
+mBinding.root.postDelayed({
+    AdsManager.loadNativeWelcome(this, R.layout.layout_native_welcome)
+}, 100L)
+
+// 2. Observe LiveData in observerData()
+AdsManager.nativeWelcomeAdLive.observe(this) { ad ->
+    if (ad == null) {
+        mBinding.frAds.goneView()
+    } else {
+        mBinding.frAds.visibleView()
+        populateNativeAdView(this, ad, mBinding.frAds, mBinding.shimmerAds.shimmerNativeLarge)
+    }
+}
+```
+
+**Available LiveData slots in `AdsManager`:**
+
+| LiveData | Ad slot |
+| --- | --- |
+| `nativeLanguageAdLive` | Native ad on the language selection screen |
+| `nativeLanguageClickAdLive` | Native ad after the user taps a language |
+| `nativeOnboarding1AdLive` | Native ad on onboarding page 1 |
+| `nativeOnboarding4AdLive` | Native ad on onboarding page 4 |
+| `nativeAdOnBoardingFullLive` | Full-screen native ad on onboarding page 3 |
+| `nativeSurveyAdLive` | Native ad on the uninstall survey screen |
+| `nativeConfirmUninstallAdLive` | Native ad on the confirm-uninstall screen |
+| `nativeWelcomeAdLive` | Native ad on the Welcome screen (resume flow) |
+
+> **Important:** When there is no network or the user has purchased, LiveData emits `null`. Activities/Fragments must handle both cases (`null` -> hide container, non-null -> populate).
 
 ### Typical Flow
 
-1. `GlobalApp` calls `RemoteConfigUtils.init()` and assigns `ERainAd.getInstance().prepareLoadingAdsDialogLayout`.
-2. `AdRemoteConfig.initialize()` runs once on startup. Every screen references placements via `AdRemoteConfig.<key>` or the extension vals.
-3. UI layers never touch raw JSON. They call `AdsManager.load...`/`show...`, or check `AdRemoteConfig.<key>.isEnable` before rendering optional containers.
+1. `GlobalApp.onCreate()`:
+   - Calls `AdRemoteConfig.initializeFromAssets(context)` to load local config.
+   - Initializes `ERainAd` with the environment config.
+   - Sets dialog layouts (`prepareLoadingAdsDialogLayout`, `resumeLoadingDialogLayout`).
+   - If `ResumeAdsEntryRule.shouldShowWelcomeOnResume()`, registers `AppLifecycleObserver` + `AppActivityLifecycleCallbacks`.
 
-### Adding A New Placement
+2. `SplashActivity`:
+   - Runs `RemoteConfigUtils.init()` and waits for the remote config fetch to complete (with timeout).
+   - Calls `AdRemoteConfig.initialize(context, jsonFromRemote)` to apply the latest config.
+   - Immediately loads `native_language` for the next screen.
+   - Loads and shows `inter_splash` if enabled.
+   - Enables/disables open resume based on `ResumeAdsEntryRule.shouldEnableOpenResume()`.
 
-1. Extend `ad_config_debug.json` / `ad_config.json` with the new key.
-2. Add a property to `AdRemoteConfigExtensions.kt` so Kotlin callers can read the key in a type-safe manner.
-3. Decide where to preload the resource inside `AdsManager`.
-4. Update the Remote Config default by re-running the app once (the value is uploaded via `RemoteConfigUtils` defaults) or manually editing the Remote Config console.
+3. **Activities receiving native ads** never touch raw JSON. They:
+   - Call `AdsManager.loadNative...()` to trigger loading.
+   - Observe `AdsManager.<slot>Live` to receive the async result.
+   - Call `populateNativeAdView()` when LiveData emits a non-null value.
+
+### Adding A New Native Placement
+
+1. Extend `ad_config_debug.json` / `ad_config.json` with the new key (include `colorCTA`, `heightCTA`, `positionCTA`).
+2. Add a property to `AdRemoteConfig.kt` and `AdRemoteConfigExtensions.kt` for type-safe access.
+3. Add a new `MutableLiveData<ApNativeAd?>` to `AdsManager` (e.g. `val nativeHomeAdLive = MutableLiveData<ApNativeAd?>()`).
+4. Add a `loadNativeHome(activity, layoutRes)` method in `AdsManager` that calls `loadNativeInternal(...)`.
+5. In the target Activity: call load in `initViews()`, observe LiveData in `observerData()`.
+6. Add the slot to `clearAll()` in `AdsManager`.
+7. Update the Remote Config defaults by re-running the app once (values are pushed automatically via `RemoteConfigUtils`).
+
+### Adding A New Interstitial Placement
+
+1. Add the key to the config JSON.
+2. Add a property to `AdRemoteConfig.kt` + extension.
+3. Add a `private var interXxxAd: ApInterstitialAd?` variable to `AdsManager`.
+4. Add `loadInterXxx(context)` and `showInterXxx(context, onAction: () -> Unit)` following the `loadInterWelcome`/`showInterWelcome` pattern.
+5. Trigger load early (usually on the preceding screen), trigger show at the navigation point needed.
+
+## `BaseActivityWithBanner`
+
+Activities that need **banner ads** should extend `BaseActivityWithBanner<VB>` instead of `BaseActivity<VB>`.
+
+```kotlin
+class MainActivity : BaseActivityWithBanner<ActivityMainBinding>() {
+    override val bannerConfig = BannerConfig(AdRemoteConfig.banner_home, isCollapse = true)
+    // ...
+}
+```
+
+`BaseActivityWithBanner` automatically:
+- Loads banner in `onCreate()`.
+- Reloads banner based on `reloadIntervalSeconds` when activity resumes.
+- Checks `AppPurchase.getInstance().isPurchased(this)` before showing.
+- Cleans up Handler in `onPause`/`onDestroy`.
+
+`BaseActivity` (base class) **no longer contains banner logic**. Only Activities that truly need banners should extend `BaseActivityWithBanner`.
 
 ## Force Update Dialog (`force_update_config.json`)
 

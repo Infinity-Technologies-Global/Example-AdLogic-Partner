@@ -13,7 +13,8 @@ import com.itg.template.ads.RemoteConfigUtils
 import com.itg.template.ads.banner_home
 import com.itg.template.data.model.ForceUpdateConfig
 import com.itg.template.databinding.ActivityMainBinding
-import com.itg.template.ui.bases.BaseActivity
+import com.itg.template.ui.bases.BannerConfig
+import com.itg.template.ui.bases.BaseActivityWithBanner
 import com.itg.template.ui.bases.ConsentHandler
 import com.itg.template.ui.bases.ext.click
 import com.itg.template.ui.component.main.dialog.ForceUpdateDialog
@@ -25,9 +26,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 
 @AndroidEntryPoint
-class MainActivity : BaseActivity<ActivityMainBinding>() {
+class MainActivity : BaseActivityWithBanner<ActivityMainBinding>() {
 
-    override val bannerConfig = Pair(AdRemoteConfig.banner_home, true)
+    override val bannerConfig = BannerConfig(AdRemoteConfig.banner_home, true)
 
     private lateinit var consentHandler: ConsentHandler
     private val delayHandler = Handler(Looper.getMainLooper())
@@ -36,8 +37,8 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     private lateinit var forceUpdateDialog: ForceUpdateDialog
     private var forceUpdateDialogHandle: Dialog? = null
     private var cachedForceUpdateConfig: ForceUpdateConfig? = null
-    override fun getLayoutActivity(): Int = R.layout.activity_main
 
+    override fun getLayoutActivity(): Int = R.layout.activity_main
 
     override fun initViews() {
         super.initViews()
@@ -86,7 +87,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         }
     }
 
-
     override fun onClickViews() {
         super.onClickViews()
         mBinding.buttonHello.click {
@@ -121,21 +121,13 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             permissions(PermissionLists.getPostNotificationsPermission())
             onDoNotAskAgain { permissions, userResult ->
                 Timber.tag("Permission").d("Do not ask again ")
-                // Show a dialog to the user explaining why the permission is needed
-                // and guide them to the app settings.
-                // userResult.onResult(true) will take the user to settings.
             }
             onShouldShowRationale { shouldShowRationaleList, onUserResult ->
                 Timber.tag("Permission").d("Should show rationale")
-                // Show a dialog explaining why you need the permission.
-                // onUserResult.onResult(true) will proceed with the permission request.
             }
-            onResult { allGranted, grantedList, deniedList ->
-                // Handle the result
-            }
+            onResult { allGranted, grantedList, deniedList -> }
         }
     }
-
 
     private fun loadInterstitial() {
         if (!AdRemoteConfig.isInitialized()) {

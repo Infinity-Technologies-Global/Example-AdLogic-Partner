@@ -37,8 +37,8 @@
 │  │      (dựa vào firstLanguage)                                    │  │
 │  │    - native_language_1_click / native_language_2_click          │  │
 │  │      (cho click event)                                           │  │
-│  │    → Stored in: AdsManager.nativeLanguageAd                     │  │
-│  │    → Stored in: AdsManager.nativeLanguageClickAd                │  │
+│  │    → Emit qua: AdsManager.nativeLanguageAdLive                  │  │
+│  │    → Emit qua: AdsManager.nativeLanguageClickAdLive             │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                │                                         │
 │                                ▼                                         │
@@ -88,16 +88,16 @@
 │  │    - native_onboarding_1_1 / native_onboarding_2_1                │  │
 │  │      (dựa vào firstOnBoarding)                                   │  │
 │  │    - native_onboarding_1_4 / native_onboarding_2_4                │  │
-│  │    → Stored in: AdsManager.nativeOnboarding1Ad                   │  │
-│  │    → Stored in: AdsManager.nativeOnboarding4Ad                    │  │
+│  │    → Emit qua: AdsManager.nativeOnboarding1AdLive                │  │
+│  │    → Emit qua: AdsManager.nativeOnboarding4AdLive                │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                │                                         │
 │                                ▼                                         │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │ 3. Show Native Language Ad                                       │  │
-│  │    - Check: AdsManager.nativeLanguageAd (đã load từ Splash)      │  │
-│  │    - If loaded → populateNativeAdView() ngay                      │  │
-│  │    - If not loaded → Wait for onLoadNativeSuccess() callback     │  │
+│  │    - Observe: AdsManager.nativeLanguageAdLive                     │  │
+│  │    - Emit non-null → populateNativeAdView() ngay                  │  │
+│  │    - Emit null → hide container                                   │  │
 │  │    - Container: flAds                                             │  │
 │  │    - Layout: RemoteConfigUtils.getAdLanguageLayout()             │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
@@ -107,7 +107,7 @@
 │  │ 4. User Interaction                                               │  │
 │  │    - User clicks language item                                    │  │
 │  │    → Show Native Language Click Ad                                │  │
-│  │      (AdsManager.nativeLanguageClickAd)                          │  │
+│  │      (observe AdsManager.nativeLanguageClickAdLive)              │  │
 │  │    → Delay show Done button                                       │  │
 │  │    → User clicks Done                                             │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
@@ -138,9 +138,9 @@
 │  │  - native_onboarding_    │  │                          │            │
 │  │    fullscreen_1_3 /      │  │                          │            │
 │  │    fullscreen_2_3        │  │                          │            │
-│  │  → Stored in:            │  │                          │            │
+│  │  → Emit qua:             │  │                          │            │
 │  │    AdsManager.           │  │                          │            │
-│  │    nativeAdOnBoardingFull│  │                          │            │
+│  │    nativeAdOnBoardingFullLive │                          │            │
 │  └──────────────────────────┘  └──────────────────────────┘            │
 │                    │                        │                           │
 │                    └────────────┬────────────┘                           │
@@ -159,7 +159,7 @@
 │  │  ┌───────────────────────────────────────────────────────────┐  │  │
 │  │  │ PAGE 1                                                     │  │  │
 │  │  │ - Show Native Ad                                           │  │  │
-│  │  │ - AdsManager.nativeOnboarding1Ad                           │  │  │
+│  │  │ - Observe AdsManager.nativeOnboarding1AdLive               │  │  │
 │  │  │ - isHasNativeOnPage1 = true                                │  │  │
 │  │  └───────────────────────────────────────────────────────────┘  │  │
 │  │                                │                                 │  │
@@ -173,7 +173,7 @@
 │  │  ┌───────────────────────────────────────────────────────────┐  │  │
 │  │  │ PAGE 3                                                     │  │  │
 │  │  │ - Show Native Full Ad (Fullscreen)                         │  │  │
-│  │  │ - AdsManager.nativeAdOnBoardingFull                        │  │  │
+│  │  │ - Observe AdsManager.nativeAdOnBoardingFullLive            │  │  │
 │  │  │ - ERainAd.getInstance().shouldDisplayNativeOnboardingFull1   │  │  │
 │  │  │ - isHasNativeFull = true                                   │  │  │
 │  │  └───────────────────────────────────────────────────────────┘  │  │
@@ -182,7 +182,7 @@
 │  │  ┌───────────────────────────────────────────────────────────┐  │  │
 │  │  │ PAGE 4                                                     │  │  │
 │  │  │ - Show Native Ad                                           │  │  │
-│  │  │ - AdsManager.nativeOnboarding4Ad                           │  │  │
+│  │  │ - Observe AdsManager.nativeOnboarding4AdLive               │  │  │
 │  │  │ - isHasNativeOnPage4 = true                                │  │  │
 │  │  └───────────────────────────────────────────────────────────┘  │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
@@ -207,22 +207,22 @@
 
 | Ad Unit | Config Key | Storage Location | Mục đích |
 |---------|-----------|------------------|----------|
-| Native Language Main | `native_language_1` / `native_language_2` | `AdsManager.nativeLanguageAd` | Show trên Language screen |
-| Native Language Click | `native_language_1_click` / `native_language_2_click` | `AdsManager.nativeLanguageClickAd` | Show khi user click language |
+| Native Language Main | `native_language_1` / `native_language_2` | `AdsManager.nativeLanguageAdLive` | Show trên Language screen |
+| Native Language Click | `native_language_1_click` / `native_language_2_click` | `AdsManager.nativeLanguageClickAdLive` | Show khi user click language |
 | Interstitial Splash | `inter_splash` | Load & Show trực tiếp | Show trước khi navigate |
 
 ### LanguageActivity - Ad Units Loaded
 
 | Ad Unit | Config Key | Storage Location | Mục đích |
 |---------|-----------|------------------|----------|
-| Native Onboarding 1 | `native_onboarding_1_1` / `native_onboarding_2_1` | `AdsManager.nativeOnboarding1Ad` | Show trên Onboarding page 1 |
-| Native Onboarding 4 | `native_onboarding_1_4` / `native_onboarding_2_4` | `AdsManager.nativeOnboarding4Ad` | Show trên Onboarding page 4 |
+| Native Onboarding 1 | `native_onboarding_1_1` / `native_onboarding_2_1` | `AdsManager.nativeOnboarding1AdLive` | Show trên Onboarding page 1 |
+| Native Onboarding 4 | `native_onboarding_1_4` / `native_onboarding_2_4` | `AdsManager.nativeOnboarding4AdLive` | Show trên Onboarding page 4 |
 
 ### OnBoardingActivity - Ad Units Loaded
 
 | Ad Unit | Config Key | Storage Location | Mục đích |
 |---------|-----------|------------------|----------|
-| Native Onboarding Full | `native_onboarding_fullscreen_1_3` / `native_onboarding_fullscreen_2_3` | `AdsManager.nativeAdOnBoardingFull` | Show fullscreen trên page 3 |
+| Native Onboarding Full | `native_onboarding_fullscreen_1_3` / `native_onboarding_fullscreen_2_3` | `AdsManager.nativeAdOnBoardingFullLive` | Show fullscreen trên page 3 |
 
 ## Bảng điều kiện Show Ad
 
@@ -243,13 +243,13 @@
 | **T3** | SplashActivity | Load Native Language Click Ad | `native_language_1_click/2_click` | Loading |
 | **T4** | SplashActivity | Show Interstitial Splash | `inter_splash` | Show (nếu enabled) |
 | **T5** | LanguageActivity | Load Native Onboarding Ads | `native_onboarding_1_1/2_1`, `1_4/2_4` | Loading |
-| **T6** | LanguageActivity | Show Native Language Ad | `nativeLanguageAd` (đã load ở T2) | Show |
-| **T7** | LanguageActivity | User clicks language | `nativeLanguageClickAd` (đã load ở T3) | Show |
+| **T6** | LanguageActivity | Observe + Show Native Language Ad | `nativeLanguageAdLive` (emit từ T2) | Show/Hide theo emit |
+| **T7** | LanguageActivity | User clicks language | `nativeLanguageClickAdLive` (emit từ T3) | Show/Hide theo emit |
 | **T8** | OnBoardingActivity | Load Native Onboarding Full | `native_onboarding_fullscreen_1_3/2_3` | Loading |
-| **T9** | OnBoardingActivity - Page 1 | Show Native Ad | `nativeOnboarding1Ad` (đã load ở T5) | Show |
+| **T9** | OnBoardingActivity - Page 1 | Observe + Show Native Ad | `nativeOnboarding1AdLive` (emit từ T5) | Show/Hide theo emit |
 | **T10** | OnBoardingActivity - Page 2 | No Ad | - | - |
-| **T11** | OnBoardingActivity - Page 3 | Show Native Full Ad | `nativeAdOnBoardingFull` (đã load ở T8) | Show |
-| **T12** | OnBoardingActivity - Page 4 | Show Native Ad | `nativeOnboarding4Ad` (đã load ở T5) | Show |
+| **T11** | OnBoardingActivity - Page 3 | Observe + Show Native Full Ad | `nativeAdOnBoardingFullLive` (emit từ T8) | Show/Hide theo emit |
+| **T12** | OnBoardingActivity - Page 4 | Observe + Show Native Ad | `nativeOnboarding4AdLive` (emit từ T5) | Show/Hide theo emit |
 
 ## Chi tiết các bước Load và Show Ad
 
@@ -278,12 +278,13 @@
 
 **Show Ad:**
 - Show Native Language Ad ngay khi vào màn:
-  - Sử dụng `AdsManager.nativeLanguageAd` (đã load từ Splash)
+  - Observe `AdsManager.nativeLanguageAdLive` (đã emit từ Splash)
   - Populate vào `flAds` container
   - Sử dụng layout config từ `RemoteConfigUtils.getAdLanguageLayout()`
+  - Nếu LiveData emit `null` thì hide container
   
 - Show Native Language Click Ad khi user click chọn language:
-  - Sử dụng `AdsManager.nativeLanguageClickAd` (đã load từ Splash)
+  - Observe `AdsManager.nativeLanguageClickAdLive` (đã emit từ Splash)
   - Populate vào cùng container `flAds`
   - Delay show Done button sau khi click
 
@@ -295,31 +296,31 @@
   - Chỉ load nếu `ERainAd.getInstance().shouldDisplayNativeOnboardingFull1 == true`
 
 **Show Ad:**
-- **Page 1**: Show Native Ad (`nativeOnboarding1Ad`) - nếu có
+- **Page 1**: Show Native Ad (`nativeOnboarding1AdLive`) - nếu emit non-null
 - **Page 2**: Không có ad
-- **Page 3**: Show Native Full Ad (`nativeAdOnBoardingFull`) - fullscreen
-- **Page 4**: Show Native Ad (`nativeOnboarding4Ad`) - nếu có
+- **Page 3**: Show Native Full Ad (`nativeAdOnBoardingFullLive`) - fullscreen
+- **Page 4**: Show Native Ad (`nativeOnboarding4AdLive`) - nếu emit non-null
 
-## Luồng Callback
+## Luồng LiveData
 
 ```
 SplashActivity
   └─> loadNativeLanguage()
       └─> AdsManager.loadNativeConfig()
-          └─> onNativeAdLoaded() → nativeLanguageAd/nativeLanguageClickAd stored
+          └─> onNativeAdLoaded() → postValue vào nativeLanguageAdLive/nativeLanguageClickAdLive
 
 LanguageActivity
-  └─> showNativeLanguage()
-      └─> Check AdsManager.nativeLanguageAd
-          └─> If loaded → populateNativeAdView()
-          └─> If not loaded → Wait for onLoadNativeSuccess()
+  └─> observe nativeLanguageAdLive + nativeLanguageClickAdLive
+      └─> non-null → populateNativeAdView()
+      └─> null → hide ad container
 
 OnBoardingActivity
   └─> loadNativeOnboardingFull()
       └─> AdsManager.loadNativeConfig()
-          └─> onNativeAdLoaded() → nativeAdOnBoardingFull stored
-          └─> onLoadNativeSuccess() → notifyNativeAdFullLoaded()
-              └─> ViewModel updates → UI shows ad on page 3
+          └─> onNativeAdLoaded() → postValue vào nativeAdOnBoardingFullLive
+  └─> OnboardingPageFragment observe các LiveData onboarding
+      └─> non-null → render ad
+      └─> null → renderNoAd()
 ```
 
 ## Điều kiện Show Ad

@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.itg.template.ui.bases.BaseViewModel
 import kotlinx.coroutines.launch
 
-class OnboardingViewModel: BaseViewModel() {
+class OnboardingViewModel : BaseViewModel() {
 
     private val _isNeedNextPage = MutableLiveData<Boolean>()
     val isNeedNextPage: LiveData<Boolean> = _isNeedNextPage
@@ -18,6 +18,10 @@ class OnboardingViewModel: BaseViewModel() {
         viewModelScope.launch {
             _isNeedNextPage.value = true
         }
+    }
+
+    fun onNextPageHandled() {
+        _isNeedNextPage.value = false
     }
 
     fun notifyNativeAdFullLoaded() {

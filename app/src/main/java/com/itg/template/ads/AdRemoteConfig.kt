@@ -171,4 +171,16 @@ data class AdRemoteConfig(
 
     val banner_home: AdUnitConfig
         get() = getAdUnit("banner_home")
+
+    val native_survey: AdUnitConfig
+        get() = getAdUnit("native_survey")
+
+    val native_confirm_uninstall: AdUnitConfig
+        get() = getAdUnit("native_confirm_uninstall")
+
+    val native_welcome: AdUnitConfig
+        get() = getAdUnit("native_welcome")
+
+    val inter_welcome: AdUnitConfig
+        get() = getAdUnit("inter_welcome")
 }

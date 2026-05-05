@@ -2,13 +2,9 @@ package com.itg.template.ui.bases
 
 import android.content.res.Configuration
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -23,12 +19,8 @@ import com.ads.module.admob.Admob
 import com.ads.module.ads.wrapper.ApInterstitialAd
 import com.ads.module.funtion.AdCallback
 import com.itg.template.R
-import com.itg.template.ads.AdUnitConfig
-import com.itg.template.ads.AdsManager
 import com.itg.template.app.AppConstants
 import com.itg.template.data.pref.AppSharedPref
-import com.itg.template.ui.bases.ext.goneView
-import com.itg.template.ui.bases.ext.visibleView
 import com.itg.template.utils.ITGTrackingHelper
 import com.itg.template.utils.Routes
 import java.util.Locale
@@ -37,38 +29,17 @@ import javax.inject.Inject
 abstract class BaseActivity<VB : ViewDataBinding> : AppCompatActivity() {
 
     companion object {
-
         private const val TAG = "BaseActivity"
-
-        private const val DISTANCE_TIME_NEED_CHECK_RELOAD_BANNER = 1000L
     }
 
     lateinit var mBinding: VB
-
-    // Banner config and isCollapse
-    open val bannerConfig: Pair<AdUnitConfig, Boolean> = Pair(AdUnitConfig(id = "", isEnable = false, reloadIntervalSeconds = 0), false)
-
-    private var loadingView: View? = null
 
     @Inject
     lateinit var appSharedPref: AppSharedPref
 
     protected open val shouldShowNavigationBars = false
 
-    private var timeNeedReloadBanner = 0L
-
-    private var handlerBanner: Handler? = null
-
-    private var runnableBanner = object : Runnable {
-
-        override fun run() {
-            val isNeedReloadBanner = isNeedReloadBanner()
-            if (timeNeedReloadBanner < System.currentTimeMillis() && isNeedReloadBanner) {
-                loadBanner()
-            }
-            if (isNeedReloadBanner) handlerBanner?.postDelayed(this, DISTANCE_TIME_NEED_CHECK_RELOAD_BANNER)
-        }
-    }
+    private var loadingView: android.view.View? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,13 +58,6 @@ abstract class BaseActivity<VB : ViewDataBinding> : AppCompatActivity() {
         }
         mBinding.lifecycleOwner = this
         registerBackPress()
-        if (bannerConfig.first.isEnable) {
-            handlerBanner = Handler(Looper.getMainLooper())
-            loadBanner()
-        } else {
-            val frAds = findViewById<FrameLayout>(R.id.fr_banner)
-            frAds?.goneView()
-        }
 
         initLoadingView()
         initViews()
@@ -125,52 +89,17 @@ abstract class BaseActivity<VB : ViewDataBinding> : AppCompatActivity() {
         resources.updateConfiguration(config, resources.displayMetrics)
     }
 
-
     override fun onResume() {
         super.onResume()
         setUpSystemBars()
-        if (isNeedReloadBanner()) handlerBanner?.postDelayed(runnableBanner, DISTANCE_TIME_NEED_CHECK_RELOAD_BANNER)
-    }
-
-    override fun onPause() {
-        super.onPause()
-        handlerBanner?.removeCallbacksAndMessages(null)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        handlerBanner?.removeCallbacksAndMessages(null)
-        handlerBanner = null
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         setUpSystemBars()
-
     }
-
-    protected fun loadBanner() {
-        try {
-            val frAds = findViewById<FrameLayout>(R.id.fr_banner)
-            if (frAds != null) {
-                frAds.visibleView()
-                AdsManager.loadBanner(this@BaseActivity, bannerConfig.first, frAds, bannerConfig.second)
-                val distanceReloadBanner = bannerConfig.first.reloadIntervalSeconds ?: 0
-                if (distanceReloadBanner > 0) {
-                    timeNeedReloadBanner = System.currentTimeMillis() + distanceReloadBanner * 1000L
-                }
-            }
-        } catch (_: Exception) {}
-    }
-
-    private fun isNeedReloadBanner(): Boolean {
-        val distanceReloadBanner = bannerConfig.first.reloadIntervalSeconds ?: 0
-        return bannerConfig.first.isEnable && distanceReloadBanner > 0
-    }
-
 
     private fun registerBackPress() {
-
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 onActivityBackPressed()
@@ -181,7 +110,6 @@ abstract class BaseActivity<VB : ViewDataBinding> : AppCompatActivity() {
     open fun onActivityBackPressed() {
         finish()
     }
-
 
     private fun setUpSystemBars() {
         ViewCompat.setOnApplyWindowInsetsListener(mBinding.root) { view, insets ->
@@ -232,5 +160,4 @@ abstract class BaseActivity<VB : ViewDataBinding> : AppCompatActivity() {
             parent.addView(loadingView)
         }
     }
-
 }

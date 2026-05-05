@@ -2,6 +2,8 @@
 
 # Infinity विज्ञापन और प्राथमिकताएं गाइड
 
+**Language / Ngôn ngữ / भाषा:** [English](README.md) | [Tiếng Việt](README.vi.md) | [हिन्दी](README.hi.md)
+
 📊 **[विज्ञापन लोड और शो का आरेख देखें](ad_flow_diagram.md)** - Splash, Language, Onboarding
 
 यह प्रोजेक्ट एक स्थानीय डीबग विज्ञापन कॉन्फ़िगरेशन और एक एकल साझा प्राथमिकताएं प्रविष्टि बिंदु के साथ आता है ताकि स्क्रीन के बीच ऑनबोर्डिंग स्थिति संरेखित रहे। इस दस्तावेज़ का लक्ष्य यह समझाना है कि कोडबेस में खुदाई किए बिना `ad_config_debug.json` और `appSharedPref` के साथ कैसे काम करें।
@@ -142,21 +144,103 @@ RemoteConfigUtils.getAdRemoteConfig()
 | `AdRemoteConfig.kt` | JSON संपत्तियों/Remote Config पेलोड को लोड करता है और प्रति प्लेसमेंट टाइप किए गए गेटर्स को उजागर करता है। |
 | `AdRemoteConfigExtensions.kt` | दृढ़ता से टाइप की गई कुंजियों जैसे `inter_splash`, `native_language_1`, आदि के लिए सुविधा val एक्सटेंशन। |
 | `RemoteConfigUtils.kt` | Firebase Remote Config को बूटस्ट्रैप करता है, स्थानीय डिफ़ॉल्ट को धकेलता है, सहायक गेटर्स को उजागर करता है (`getAdRemoteConfig()`, `getAdLanguageLayout()`, `getForceUpdateConfig()`)। |
-| `AdsManager.kt` | सभी विज्ञापन ऑब्जेक्ट्स (इंटरस्टिशियल, नेटिव, ऑनबोर्डिंग फुल-स्क्रीन) के लिए केंद्रीकृत लोडर/कैशर। नेटवर्क स्थितियों और खरीद स्थिति का निरीक्षण करता है। |
-| `AdExtension.kt` | कस्टम लेआउट में Google Native विज्ञापनों को भरने के लिए सहायक (CTA आकार, शिमर हैंडलिंग)। |
+| `AdsManager.kt` | सभी विज्ञापनों के लिए केंद्रीकृत लोडर। हर नेटिव विज्ञापन स्लॉट को `MutableLiveData<ApNativeAd?>` के रूप में उपलब्ध कराता है ताकि Activity/Fragment उसे observe कर सकें। इंटरस्टिशियल विज्ञापन अलग methods से load/show होते हैं। यह नेटवर्क और खरीद की स्थिति भी देखता है। |
+| `AdExtension.kt` | शीर्ष-स्तरीय `populateNativeAdView()` अपने-आप `AdsManager.getAdConfig(ad)` से `heightCTA`/`colorCTA` पढ़ता है। ERainAd extension को पिछली संगतता के लिए रखा गया है। |
+
+### नेटिव विज्ञापन: `LiveData` पैटर्न
+
+नए ढांचे पर बदलाव के बाद, **सभी नेटिव विज्ञापन अब `MutableLiveData` के जरिए उपलब्ध हैं** (पुराने variable cache + callback interface की जगह)।
+
+**Activity में नेटिव विज्ञापन load और observe करने का तरीका:**
+
+```kotlin
+// 1. initViews() में load शुरू करें (jank कम करने के लिए 100ms delay वैकल्पिक)
+mBinding.root.postDelayed({
+    AdsManager.loadNativeWelcome(this, R.layout.layout_native_welcome)
+}, 100L)
+
+// 2. observerData() में LiveData observe करें
+AdsManager.nativeWelcomeAdLive.observe(this) { ad ->
+    if (ad == null) {
+        mBinding.frAds.goneView()
+    } else {
+        mBinding.frAds.visibleView()
+        populateNativeAdView(this, ad, mBinding.frAds, mBinding.shimmerAds.shimmerNativeLarge)
+    }
+}
+```
+
+**`AdsManager` में उपलब्ध `LiveData` स्लॉट:**
+
+| LiveData | विज्ञापन स्लॉट |
+| --- | --- |
+| `nativeLanguageAdLive` | भाषा चयन स्क्रीन का नेटिव विज्ञापन |
+| `nativeLanguageClickAdLive` | भाषा चुनने के बाद का नेटिव विज्ञापन |
+| `nativeOnboarding1AdLive` | onboarding पेज 1 का नेटिव विज्ञापन |
+| `nativeOnboarding4AdLive` | onboarding पेज 4 का नेटिव विज्ञापन |
+| `nativeAdOnBoardingFullLive` | onboarding पेज 3 का फुल-स्क्रीन नेटिव विज्ञापन |
+| `nativeSurveyAdLive` | uninstall survey स्क्रीन का नेटिव विज्ञापन |
+| `nativeConfirmUninstallAdLive` | confirm-uninstall स्क्रीन का नेटिव विज्ञापन |
+| `nativeWelcomeAdLive` | Welcome स्क्रीन (resume flow) का नेटिव विज्ञापन |
+
+> **महत्वपूर्ण:** नेटवर्क न होने पर या user ने purchase कर लिया हो तो `LiveData` `null` emit करता है। Activity/Fragment को दोनों स्थितियां संभालनी चाहिए (`null` -> container छुपाएं, non-null -> विज्ञापन populate करें)।
 
 ### विशिष्ट प्रवाह
 
-1. `GlobalApp` `RemoteConfigUtils.init()` को कॉल करता है और `ERainAd.getInstance().prepareLoadingAdsDialogLayout` को असाइन करता है।
-2. `AdRemoteConfig.initialize()` स्टार्टअप पर एक बार चलता है। प्रत्येक स्क्रीन `AdRemoteConfig.<key>` या एक्सटेंशन vals के माध्यम से प्लेसमेंट का संदर्भ देती है।
-3. UI परतें कभी भी कच्चे JSON को नहीं छूती हैं। वे `AdsManager.load...`/`show...` को कॉल करते हैं, या वैकल्पिक कंटेनर रेंडर करने से पहले `AdRemoteConfig.<key>.isEnable` की जांच करते हैं।
+1. `GlobalApp.onCreate()`:
+   - स्थानीय config load करने के लिए `AdRemoteConfig.initializeFromAssets(context)` call करता है।
+   - environment config के साथ `ERainAd` initialize करता है।
+   - dialog layouts सेट करता है (`prepareLoadingAdsDialogLayout`, `resumeLoadingDialogLayout`)।
+   - अगर `ResumeAdsEntryRule.shouldShowWelcomeOnResume()` true हो तो `AppLifecycleObserver` + `AppActivityLifecycleCallbacks` register करता है।
 
-### एक नया प्लेसमेंट जोड़ना
+2. `SplashActivity`:
+   - `RemoteConfigUtils.init()` चलाता है और remote config fetch पूरा होने का इंतजार करता है (timeout के साथ)।
+   - नवीनतम config लागू करने के लिए `AdRemoteConfig.initialize(context, jsonFromRemote)` call करता है।
+   - अगले स्क्रीन के लिए तुरंत `native_language` load करता है।
+   - अगर चालू हो तो `inter_splash` load/show करता है।
+   - `ResumeAdsEntryRule.shouldEnableOpenResume()` के आधार पर open resume enable/disable करता है।
 
-1. नई कुंजी के साथ `ad_config_debug.json` / `ad_config.json` का विस्तार करें।
-2. `AdRemoteConfigExtensions.kt` में एक संपत्ति जोड़ें ताकि Kotlin कॉलर टाइप-सुरक्षित तरीके से कुंजी पढ़ सकें।
-3. तय करें कि `AdsManager` के अंदर संसाधन को कहां प्रीलोड करना है।
-4. ऐप को एक बार फिर से चलाकर Remote Config डिफ़ॉल्ट को अपडेट करें (मान `RemoteConfigUtils` डिफ़ॉल्ट के माध्यम से अपलोड किया जाता है) या मैन्युअल रूप से Remote Config कंसोल को संपादित करें।
+3. **नेटिव विज्ञापन पाने वाली Activities** raw JSON को सीधे नहीं छूतीं। वे:
+   - loading शुरू करने के लिए `AdsManager.loadNative...()` call करती हैं।
+   - असमकालिक परिणाम पाने के लिए `AdsManager.<slot>Live` observe करती हैं।
+   - `LiveData` non-null emit होने पर `populateNativeAdView()` call करती हैं।
+
+### नया नेटिव प्लेसमेंट जोड़ना
+
+1. `ad_config_debug.json` / `ad_config.json` में नई key जोड़ें (`colorCTA`, `heightCTA`, `positionCTA` सहित)।
+2. सुरक्षित टाइप पहुंच के लिए `AdRemoteConfig.kt` और `AdRemoteConfigExtensions.kt` में property जोड़ें।
+3. `AdsManager` में नया `MutableLiveData<ApNativeAd?>` जोड़ें (जैसे `val nativeHomeAdLive = MutableLiveData<ApNativeAd?>()`)।
+4. `AdsManager` में `loadNativeHome(activity, layoutRes)` method जोड़ें जो `loadNativeInternal(...)` call करे।
+5. लक्ष्य Activity में: `initViews()` में load call करें, `observerData()` में LiveData observe करें।
+6. `AdsManager` के `clearAll()` में यह slot जोड़ें।
+7. app एक बार चलाकर Remote Config के डिफ़ॉल्ट अपडेट करें (`RemoteConfigUtils` के जरिए values अपने-आप push हो जाती हैं)।
+
+### नया इंटरस्टिशियल प्लेसमेंट जोड़ना
+
+1. config JSON में key जोड़ें।
+2. `AdRemoteConfig.kt` + extension में property जोड़ें।
+3. `AdsManager` में `private var interXxxAd: ApInterstitialAd?` variable जोड़ें।
+4. `loadInterWelcome`/`showInterWelcome` pattern के अनुसार `loadInterXxx(context)` और `showInterXxx(context, onAction: () -> Unit)` जोड़ें।
+5. इंटरस्टिशियल विज्ञापन को पहले से तैयार करें (आमतौर पर पिछली स्क्रीन में), और जरूरी नेविगेशन बिंदु पर उसे प्रदर्शित करें।
+
+## `BaseActivityWithBanner`
+
+जिन Activities को **banner ads** चाहिए, उन्हें `BaseActivity<VB>` की जगह `BaseActivityWithBanner<VB>` extend करना चाहिए।
+
+```kotlin
+class MainActivity : BaseActivityWithBanner<ActivityMainBinding>() {
+    override val bannerConfig = BannerConfig(AdRemoteConfig.banner_home, isCollapse = true)
+    // ...
+}
+```
+
+`BaseActivityWithBanner` अपने-आप:
+- `onCreate()` में banner load करता है।
+- activity resume होने पर `reloadIntervalSeconds` के अनुसार banner reload करता है।
+- show करने से पहले `AppPurchase.getInstance().isPurchased(this)` check करता है।
+- `onPause`/`onDestroy` में Handler की सफाई करता है।
+
+`BaseActivity` (base class) में अब **banner logic नहीं है**। केवल वही Activities `BaseActivityWithBanner` extend करें जिन्हें वास्तव में banner चाहिए।
 
 ## फोर्स अपडेट डायलॉग (`force_update_config.json`)
 
