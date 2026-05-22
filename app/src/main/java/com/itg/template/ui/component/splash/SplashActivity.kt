@@ -4,18 +4,17 @@ import android.os.CountDownTimer
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
-import com.ads.module.admob.Admob
 import com.ads.module.admob.AppOpenManager
 import com.ads.module.ads.ERainAd
 import com.ads.module.funtion.AdCallback
 import com.itg.template.R
 import com.itg.template.ads.AdRemoteConfig
 import com.itg.template.ads.AdsManager.loadNativeLanguage
-import com.itg.template.ads.AdsManager.loadNativeLanguageClick
 import com.itg.template.ads.RemoteConfigUtils
 import com.itg.template.ads.inter_splash
 import com.itg.template.ads.open_resume
 import com.itg.template.app.AppConstants
+import com.itg.template.app.ResumeAdsEntryRule
 import com.itg.template.databinding.ActivitySplashBinding
 import com.itg.template.ui.bases.BaseActivity
 import com.itg.template.ui.bases.ConsentHandler
@@ -99,10 +98,8 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
     private fun checkRemoteConfigResult() {
         AdRemoteConfig.initialize(this, RemoteConfigUtils.getAdRemoteConfig())
         loadNativeLanguage(this, appSharedPref.firstLanguage, R.layout.layout_native_language)
-        loadNativeLanguageClick(this, appSharedPref.firstLanguage, R.layout.layout_native_language_click)
 
         if (AdRemoteConfig.inter_splash.isEnable && isNetwork(this@SplashActivity)) {
-            Admob.getInstance().setOpenActivityAfterShowInterAds(false)
             ERainAd.getInstance().loadSplashInterstitialAds(
                 this,
                 AdRemoteConfig.inter_splash.id,
@@ -118,7 +115,7 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
             moveActivity()
         }
 
-        if (AdRemoteConfig.open_resume.isEnable) {
+        if (ResumeAdsEntryRule.shouldEnableOpenResume()) {
             AppOpenManager.getInstance().setAppResumeAdId(AdRemoteConfig.open_resume.id)
             AppOpenManager.getInstance().enableAppResume()
         } else {

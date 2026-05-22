@@ -1,6 +1,8 @@
 package com.itg.template.ads
 
-import android.content.Context
+import android.app.Activity
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
@@ -13,28 +15,75 @@ import com.google.android.gms.ads.nativead.NativeAdView
 import com.itg.template.R
 import com.itg.template.ui.bases.ext.dpToPx
 
-fun ERainAd.populateNativeAdView(
-    context: Context,
+/**
+ * Top-level helper – CTA height/color resolved automatically from [AdsManager.getAdConfig].
+ */
+fun populateNativeAdView(
+    activity: Activity,
     apNativeAd: ApNativeAd,
     adPlaceHolder: FrameLayout,
     containerShimmerLoading: ShimmerFrameLayout,
-    ctaHeightInDp: Int
 ) {
+    if (apNativeAd.admobNativeAd == null && apNativeAd.nativeView == null) {
+        containerShimmerLoading.visibility = View.GONE
+        return
+    }
 
+    val config = AdsManager.getAdConfig(apNativeAd)
+
+    val adView = LayoutInflater.from(activity)
+        .inflate(apNativeAd.layoutCustomNative, null) as NativeAdView
+
+    containerShimmerLoading.stopShimmer()
+    containerShimmerLoading.visibility = View.GONE
+    adPlaceHolder.visibility = View.VISIBLE
+
+    adView.findViewById<View>(R.id.ad_call_to_action)?.let { ctaButton ->
+        ctaButton.updateLayoutParams {
+            height = (config?.heightCTA ?: 40).dpToPx(activity).toInt()
+        }
+        applyCtaColor(ctaButton, config?.colorCTA ?: "default")
+    }
+
+    Admob.getInstance().populateUnifiedNativeAdView(apNativeAd.admobNativeAd, adView)
+    adPlaceHolder.removeAllViews()
+    adPlaceHolder.addView(adView)
+}
+
+private fun applyCtaColor(ctaButton: View, colorCTA: String) {
+    if (colorCTA == "default" || colorCTA.isBlank()) return
+    try {
+        val color = Color.parseColor(colorCTA)
+        ctaButton.background = GradientDrawable().apply {
+            setColor(color)
+            cornerRadius = 20.dpToPx(ctaButton.context).toFloat()
+        }
+    } catch (_: IllegalArgumentException) { }
+}
+
+/**
+ * ERainAd extension – explicit ctaHeightInDp, kept for backward-compat.
+ */
+fun ERainAd.populateNativeAdView(
+    activity: Activity,
+    apNativeAd: ApNativeAd,
+    adPlaceHolder: FrameLayout,
+    containerShimmerLoading: ShimmerFrameLayout,
+    ctaHeightInDp: Int = 40,
+) {
     if (apNativeAd.admobNativeAd == null && apNativeAd.nativeView == null) {
         containerShimmerLoading.visibility = View.GONE
         return
     }
 
     val adView: NativeAdView =
-        LayoutInflater.from(context).inflate(apNativeAd.layoutCustomNative, null) as NativeAdView
+        LayoutInflater.from(activity).inflate(apNativeAd.layoutCustomNative, null) as NativeAdView
 
     containerShimmerLoading.stopShimmer()
     containerShimmerLoading.visibility = View.GONE
     adPlaceHolder.visibility = View.VISIBLE
 
-    val ctaButton = adView.findViewById<View>(R.id.ad_call_to_action)
-    ctaButton.updateLayoutParams {
+    adView.findViewById<View>(R.id.ad_call_to_action)?.updateLayoutParams {
         height = ctaHeightInDp.dpToPx(adPlaceHolder.context).toInt()
     }
 

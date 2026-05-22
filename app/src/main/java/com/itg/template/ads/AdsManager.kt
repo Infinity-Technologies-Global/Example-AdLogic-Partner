@@ -9,6 +9,7 @@ import android.os.Build
 import android.view.LayoutInflater
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.MutableLiveData
 import com.ads.module.ads.ERainAd
 import com.ads.module.ads.wrapper.ApInterstitialAd
 import com.ads.module.ads.wrapper.ApNativeAd
@@ -22,96 +23,86 @@ import timber.log.Timber
 
 @SuppressLint("StaticFieldLeak")
 object AdsManager {
-    private var preLoadNativeListener: PreLoadNativeListener? = null
 
-    fun setPreLoadNativeCallback(listener: PreLoadNativeListener) {
-        preLoadNativeListener = listener
-    }
+    val nativeLanguageAdLive            = MutableLiveData<ApNativeAd?>()
+    val nativeLanguageClickAdLive       = MutableLiveData<ApNativeAd?>()
+    val nativeOnboarding1AdLive         = MutableLiveData<ApNativeAd?>()
+    val nativeOnboarding4AdLive         = MutableLiveData<ApNativeAd?>()
+    val nativeAdOnBoardingFullLive      = MutableLiveData<ApNativeAd?>()
+    val nativeSurveyAdLive              = MutableLiveData<ApNativeAd?>()
+    val nativeConfirmUninstallAdLive    = MutableLiveData<ApNativeAd?>()
+    val nativeWelcomeAdLive             = MutableLiveData<ApNativeAd?>()
 
-    var nativeLanguageAd: ApNativeAd? = null
-        private set
-
-    var nativeLanguageClickAd: ApNativeAd? = null
-        private set
-
-    var nativeOnboarding1Ad: ApNativeAd? = null
-        private set
-
-    var nativeOnboarding4Ad: ApNativeAd? = null
-        private set
-
-    var nativeAdOnBoardingFull: ApNativeAd? = null
-        private set
+    // Auto-resolve config for each loaded native ad
+    private val adConfigMap = mutableMapOf<ApNativeAd, AdUnitConfig>()
+    fun getAdConfig(ad: ApNativeAd): AdUnitConfig? = adConfigMap[ad]
 
     private var interSplashAd: ApInterstitialAd? = null
-
     private var interOnboarding: ApInterstitialAd? = null
+    private var interWelcomeAd: ApInterstitialAd? = null
 
-    private fun loadNativeConfig(
+    private fun loadNativeInternal(
         activity: Activity,
         config: AdUnitConfig,
         layoutRes: Int,
-        onLoaded: (ApNativeAd) -> Unit,
+        liveData: MutableLiveData<ApNativeAd?>,
     ) {
         if (!config.isEnable || AppPurchase.getInstance()
                 .isPurchased(activity) || !activity.isNetworkAvailable()
         ) {
-            preLoadNativeListener?.onLoadNativeFail()
+            liveData.postValue(null)
             return
         }
         ERainAd.getInstance()
             .loadNativeAdResultCallback(activity, config.id, layoutRes, object : AdCallback() {
                 override fun onNativeAdLoaded(nativeAd: ApNativeAd) {
                     super.onNativeAdLoaded(nativeAd)
-                    onLoaded(nativeAd)
-                    preLoadNativeListener?.onLoadNativeSuccess()
+                    adConfigMap[nativeAd] = config
+                    liveData.postValue(nativeAd)
                 }
 
                 override fun onAdFailedToLoad(adError: LoadAdError?) {
                     super.onAdFailedToLoad(adError)
-                    preLoadNativeListener?.onLoadNativeFail()
+                    liveData.postValue(null)
                 }
             })
     }
 
     fun loadNativeLanguage(activity: Activity, isFirst: Boolean, layoutRes: Int) {
-        val mainConfig =
-            if (isFirst) AdRemoteConfig.native_language_1 else AdRemoteConfig.native_language_2
-        loadNativeConfig(activity, mainConfig, layoutRes) { nativeAd ->
-            nativeLanguageAd = nativeAd
-        }
+        val config = if (isFirst) AdRemoteConfig.native_language_1 else AdRemoteConfig.native_language_2
+        loadNativeInternal(activity, config, layoutRes, nativeLanguageAdLive)
     }
+
     fun loadNativeLanguageClick(activity: Activity, isFirst: Boolean, layoutRes: Int) {
-        val clickConfig =
-            if (isFirst) AdRemoteConfig.native_language_1_click else AdRemoteConfig.native_language_2_click
-        loadNativeConfig(activity, clickConfig, layoutRes) { nativeAd ->
-            nativeLanguageClickAd = nativeAd
-        }
+        val config = if (isFirst) AdRemoteConfig.native_language_1_click else AdRemoteConfig.native_language_2_click
+        loadNativeInternal(activity, config, layoutRes, nativeLanguageClickAdLive)
     }
 
     fun loadNativeOnboarding1(activity: Activity, isFirst: Boolean, layoutRes: Int) {
-        val onboarding1Config =
-            if (isFirst) AdRemoteConfig.native_onboarding_1_1 else AdRemoteConfig.native_onboarding_2_1
-        loadNativeConfig(activity, onboarding1Config, layoutRes) { nativeAd ->
-            nativeOnboarding1Ad = nativeAd
-        }
-
+        val config = if (isFirst) AdRemoteConfig.native_onboarding_1_1 else AdRemoteConfig.native_onboarding_2_1
+        loadNativeInternal(activity, config, layoutRes, nativeOnboarding1AdLive)
     }
-    fun loadNativeOnboarding4(activity: Activity, isFirst: Boolean, layoutRes: Int) {
-        val onboarding4Config =
-            if (isFirst) AdRemoteConfig.native_onboarding_1_4 else AdRemoteConfig.native_onboarding_2_4
-        loadNativeConfig(activity, onboarding4Config, layoutRes) { nativeAd ->
-            nativeOnboarding4Ad = nativeAd
-        }
 
+    fun loadNativeOnboarding4(activity: Activity, isFirst: Boolean, layoutRes: Int) {
+        val config = if (isFirst) AdRemoteConfig.native_onboarding_1_4 else AdRemoteConfig.native_onboarding_2_4
+        loadNativeInternal(activity, config, layoutRes, nativeOnboarding4AdLive)
     }
 
     fun loadNativeOnboardingFull(activity: Activity, isFirst: Boolean, layoutRes: Int) {
-        val onboardingFullConfig =
-            if (isFirst) AdRemoteConfig.native_onboarding_fullscreen_1_3 else AdRemoteConfig.native_onboarding_fullscreen_2_3
-        loadNativeConfig(activity, onboardingFullConfig, layoutRes) { nativeAd ->
-            nativeAdOnBoardingFull = nativeAd
-        }
+        val config = if (isFirst) AdRemoteConfig.native_onboarding_fullscreen_1_3 else AdRemoteConfig.native_onboarding_fullscreen_2_3
+        loadNativeInternal(activity, config, layoutRes, nativeAdOnBoardingFullLive)
+    }
+
+    fun loadNativeSurvey(activity: Activity, layoutRes: Int) {
+        loadNativeInternal(activity, AdRemoteConfig.native_survey, layoutRes, nativeSurveyAdLive)
+    }
+
+    fun loadNativeConfirmUninstall(activity: Activity, layoutRes: Int) {
+        loadNativeInternal(activity, AdRemoteConfig.native_confirm_uninstall, layoutRes, nativeConfirmUninstallAdLive)
+    }
+
+    fun loadNativeWelcome(activity: Activity, layoutRes: Int) {
+        loadNativeInternal(activity, AdRemoteConfig.native_welcome, layoutRes, nativeWelcomeAdLive)
     }
 
     fun loadInterOnboarding(context: Context) {
@@ -140,6 +131,32 @@ object AdsManager {
         }
     }
 
+    fun loadInterWelcome(context: Context) {
+        val config = AdRemoteConfig.inter_welcome
+        if (!config.isEnable || AppPurchase.getInstance().isPurchased(context)) {
+            interWelcomeAd = null
+            return
+        }
+        interWelcomeAd =
+            ERainAd.getInstance().getInterstitialAds(context, config.id, object : AdCallback() {})
+    }
+
+    fun showInterWelcome(context: Context, onAction: () -> Unit) {
+        val interstitial = interWelcomeAd
+        if (interstitial != null && interstitial.isReady && !AppPurchase.getInstance()
+                .isPurchased(context)
+        ) {
+            ERainAd.getInstance().forceShowInterstitial(context, interstitial, object : AdCallback() {
+                override fun onNextAction() {
+                    super.onNextAction()
+                    onAction()
+                }
+            }, false)
+        } else {
+            onAction()
+        }
+    }
+
     fun loadBanner(
         activity: AppCompatActivity,
         adUnitConfig: AdUnitConfig,
@@ -152,7 +169,7 @@ object AdsManager {
                 activity,
                 adUnitConfig.id,
                 AppConstant.CollapsibleGravity.BOTTOM,
-                object : com.ads.module.funtion.AdCallback() {
+                object : AdCallback() {
                     override fun onAdFailedToLoad(i: LoadAdError?) {
                         super.onAdFailedToLoad(i)
                         frAds.goneView()
@@ -161,7 +178,7 @@ object AdsManager {
                     }
                 })
             else ERainAd.getInstance()
-                .loadBanner(activity, adUnitConfig.id, object : com.ads.module.funtion.AdCallback() {
+                .loadBanner(activity, adUnitConfig.id, object : AdCallback() {
                     override fun onAdFailedToLoad(i: LoadAdError?) {
                         super.onAdFailedToLoad(i)
                         frAds.goneView()
@@ -197,13 +214,17 @@ object AdsManager {
     }
 
     fun clearAll() {
-        nativeLanguageAd = null
-        nativeLanguageClickAd = null
-        nativeOnboarding1Ad = null
-        nativeOnboarding4Ad = null
-        nativeAdOnBoardingFull = null
+        nativeLanguageAdLive.postValue(null)
+        nativeLanguageClickAdLive.postValue(null)
+        nativeOnboarding1AdLive.postValue(null)
+        nativeOnboarding4AdLive.postValue(null)
+        nativeAdOnBoardingFullLive.postValue(null)
+        nativeSurveyAdLive.postValue(null)
+        nativeConfirmUninstallAdLive.postValue(null)
+        nativeWelcomeAdLive.postValue(null)
         interSplashAd = null
         interOnboarding = null
+        interWelcomeAd = null
     }
 
     private fun Context.isNetworkAvailable(): Boolean {

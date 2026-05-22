@@ -1,6 +1,7 @@
 package com.itg.template.app
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ShortcutInfo
@@ -11,6 +12,7 @@ import android.graphics.drawable.Icon
 import android.os.Build
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat.getSystemService
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.ads.module.admob.Admob
 import com.ads.module.admob.AppOpenManager
 import com.ads.module.ads.ERainAd
@@ -34,11 +36,12 @@ import kotlin.jvm.java
 @HiltAndroidApp
 class GlobalApp : AdsMultiDexApplication() {
 
-    val ACTION_OPEN_UNINSTALL = "action_open_uninstall"
-
     companion object {
         @SuppressLint("StaticFieldLeak")
         lateinit var instance: GlobalApp
+
+        @SuppressLint("StaticFieldLeak")
+        var currentActivity: Activity? = null
     }
 
     override fun onCreate() {
@@ -51,10 +54,13 @@ class GlobalApp : AdsMultiDexApplication() {
         }
         initAdRemoteConfig()
         initAds()
-        //Option if request need to update
         initShortCut()
-    }
 
+        if (ResumeAdsEntryRule.shouldShowWelcomeOnResume()) {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(AppLifecycleObserver())
+            registerActivityLifecycleCallbacks(AppActivityLifecycleCallbacks())
+        }
+    }
 
     private fun initAdRemoteConfig() {
         AdRemoteConfig.initializeFromAssets(this)
@@ -65,25 +71,22 @@ class GlobalApp : AdsMultiDexApplication() {
             if (BuildConfig.DEBUG) ERainAdConfig.ENVIRONMENT_DEVELOP else ERainAdConfig.ENVIRONMENT_PRODUCTION
         mERainAdConfig = ERainAdConfig(this, environment)
 
-        // Optional: setup Adjust event
         val adjustConfig = AdjustConfig(true, resources.getString(R.string.adjust_token))
         mERainAdConfig.adjustConfig = adjustConfig
         mERainAdConfig.facebookClientToken = resources.getString(R.string.facebook_client_token)
         mERainAdConfig.adjustTokenTiktok = resources.getString(R.string.event_token)
         mERainAdConfig.intervalInterstitialAd = 35
 
-        // Optional: enable ads resume
         mERainAdConfig.idAdResume = ""
 
         ERainAd.getInstance().init(this, mERainAdConfig)
 
-        // Auto disable ad resume after user click ads and back to app
         Admob.getInstance().setDisableAdResumeWhenClickAds(true)
-        // If true -> onNextAction() is called right after Ad Interstitial showed
         Admob.getInstance().setOpenActivityAfterShowInterAds(true)
         AppOpenManager.getInstance().disableAppResumeWithActivity(SplashActivity::class.java)
         AppOpenManager.getInstance().disableAppResumeWithActivity(LanguageActivity::class.java)
         AppOpenManager.getInstance().disableAppResumeWithActivity(OnBoardingActivity::class.java)
+        AppOpenManager.getInstance().disableAppResumeWithActivity(ConfirmUninstallActivity::class.java)
         // TODO: Check if ERainAd has these properties or if they have different names
         // ERainAd.getInstance().prepareLoadingAdsDialogLayout  = R.layout.layout_prepare_ads
         // ERainAd.getInstance().resumeLoadingDialogLayout  = R.layout.layout_welcome_back
@@ -94,14 +97,14 @@ class GlobalApp : AdsMultiDexApplication() {
             val manager = getSystemService(ShortcutManager::class.java)
             try {
                 manager.removeAllDynamicShortcuts()
-                val uninstallShortCut = ShortcutInfo.Builder(this, ACTION_OPEN_UNINSTALL)
+                val uninstallShortCut = ShortcutInfo.Builder(this, "ACTION_OPEN_UNINSTALL")
                     .setShortLabel(getSystemLocaleString(R.string.txt_uninstall))
                     .setIcon(Icon.createWithResource(this, R.drawable.ic_uninstall))
                     .setIntent(Intent(this, ConfirmUninstallActivity::class.java).apply {
                         flags =
                             Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                         action = "android.intent.action.SHORTCUT_UNINSTALL_APP"
-                        putExtra(AppConstants.FROM_SHORTCUT, ACTION_OPEN_UNINSTALL)
+                        putExtra(AppConstants.FROM_SHORTCUT, "ACTION_OPEN_UNINSTALL")
                     })
                     .setRank(1)
                     .build()
@@ -121,5 +124,4 @@ class GlobalApp : AdsMultiDexApplication() {
         val systemContext = createConfigurationContext(config)
         return systemContext.getString(resId)
     }
-
 }

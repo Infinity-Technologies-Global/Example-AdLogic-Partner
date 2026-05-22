@@ -143,23 +143,105 @@ Việc này rehydrate `AdRemoteConfig` tại runtime với các placement mới.
 | File | Trách nhiệm |
 | --- | --- |
 | `AdRemoteConfig.kt` | Load các asset JSON/Remote Config payload và expose các getter định kiểu cho mỗi placement. |
-| `AdRemoteConfigExtensions.kt` | Extension val tiện lợi cho các key định kiểu mạnh như `inter_splash`, `native_language_1`, v.v. |
-| `RemoteConfigUtils.kt` | Bootstraps Firebase Remote Config, đẩy các mặc định cục bộ, expose các getter hỗ trợ (`getAdRemoteConfig()`, `getAdLanguageLayout()`, `getForceUpdateConfig()`). |
-| `AdsManager.kt` | Loader/cacher tập trung cho tất cả các đối tượng quảng cáo (interstitial, native, onboarding full-screen). Theo dõi điều kiện mạng và trạng thái mua hàng. |
-| `AdExtension.kt` | Các helper để populate quảng cáo Google Native vào các layout tùy chỉnh (kích thước CTA, xử lý shimmer). |
+| `AdRemoteConfigExtensions.kt` | Extension val tiện lợi cho các key định kiểu mạnh như `inter_splash`, `native_language_1`, `native_welcome`, v.v. |
+| `RemoteConfigUtils.kt` | Bootstraps Firebase Remote Config, đẩy các mặc định cục bộ, expose các getter hỗ trợ (`getAdRemoteConfig()`, `getForceUpdateConfig()`). |
+| `AdsManager.kt` | Loader tập trung cho tất cả quảng cáo. Mỗi native ad slot expose một `MutableLiveData<ApNativeAd?>` để Activity/Fragment observe. Interstitial được load/show qua các method riêng. Theo dõi điều kiện mạng và trạng thái mua hàng. |
+| `AdExtension.kt` | Top-level function `populateNativeAdView()` tự động lấy `heightCTA`/`colorCTA` từ `AdsManager.getAdConfig(ad)`. ERainAd extension function giữ nguyên để backward-compat. |
+
+### Pattern Native Ad: LiveData
+
+Kể từ khi migrate sang template mới, **tất cả native ads đều được expose qua `MutableLiveData`** thay vì cache biến + callback interface cũ.
+
+**Cách load và quan sát native ad trong Activity:**
+
+```kotlin
+// 1. Gọi load trong initViews() (có thể delay 100ms để tránh jank)
+mBinding.root.postDelayed({
+    AdsManager.loadNativeWelcome(this, R.layout.layout_native_welcome)
+}, 100L)
+
+// 2. Observe LiveData trong observerData()
+AdsManager.nativeWelcomeAdLive.observe(this) { ad ->
+    if (ad == null) {
+        mBinding.frAds.goneView()
+    } else {
+        mBinding.frAds.visibleView()
+        populateNativeAdView(this, ad, mBinding.frAds, mBinding.shimmerAds.shimmerNativeLarge)
+    }
+}
+```
+
+**Danh sách các LiveData hiện có trong `AdsManager`:**
+
+| LiveData | Ad slot |
+| --- | --- |
+| `nativeLanguageAdLive` | Native ad màn chọn ngôn ngữ |
+| `nativeLanguageClickAdLive` | Native ad sau khi user click chọn ngôn ngữ |
+| `nativeOnboarding1AdLive` | Native ad trang 1 onboarding |
+| `nativeOnboarding4AdLive` | Native ad trang 4 onboarding |
+| `nativeAdOnBoardingFullLive` | Native ad full-screen onboarding trang 3 |
+| `nativeSurveyAdLive` | Native ad màn survey uninstall |
+| `nativeConfirmUninstallAdLive` | Native ad màn confirm uninstall |
+| `nativeWelcomeAdLive` | Native ad màn Welcome (resume flow) |
+
+> **Lưu ý quan trọng:** Khi không có mạng hoặc user đã mua hàng, LiveData emit `null`. Activity/Fragment cần xử lý cả 2 trường hợp (`null` → hide container, non-null → populate).
 
 ### Luồng Điển hình
 
-1. `GlobalApp` gọi `RemoteConfigUtils.init()` và gán `ERainAd.getInstance().prepareLoadingAdsDialogLayout`.
-2. `AdRemoteConfig.initialize()` chạy một lần khi khởi động. Mỗi màn hình tham chiếu các placement thông qua `AdRemoteConfig.<key>` hoặc các extension val.
-3. Các UI layer không bao giờ chạm vào JSON thô. Chúng gọi `AdsManager.load...`/`show...`, hoặc kiểm tra `AdRemoteConfig.<key>.isEnable` trước khi render các container tùy chọn.
+1. `GlobalApp.onCreate()`:
+   - Gọi `AdRemoteConfig.initializeFromAssets(context)` để load config cục bộ.
+   - Khởi tạo `ERainAd` với config môi trường.
+   - Set dialog layouts (`prepareLoadingAdsDialogLayout`, `resumeLoadingDialogLayout`).
+   - Nếu `ResumeAdsEntryRule.shouldShowWelcomeOnResume()`, đăng ký `AppLifecycleObserver` + `AppActivityLifecycleCallbacks`.
 
-### Thêm Placement Mới
+2. `SplashActivity`:
+   - Chạy `RemoteConfigUtils.init()` và đợi remote config fetch xong (có timeout).
+   - Gọi `AdRemoteConfig.initialize(context, jsonFromRemote)` để áp dụng config mới nhất.
+   - Load `native_language` ngay lập tức cho màn tiếp theo.
+   - Load và show `inter_splash` nếu được bật.
+   - Bật/tắt open resume dựa trên `ResumeAdsEntryRule.shouldEnableOpenResume()`.
 
-1. Mở rộng `ad_config_debug.json` / `ad_config.json` với key mới.
-2. Thêm một property vào `AdRemoteConfigExtensions.kt` để các caller Kotlin có thể đọc key theo cách type-safe.
-3. Quyết định nơi preload resource bên trong `AdsManager`.
-4. Cập nhật mặc định Remote Config bằng cách chạy lại app một lần (giá trị được upload thông qua mặc định `RemoteConfigUtils`) hoặc chỉnh sửa thủ công trên console Remote Config.
+3. **Activity nhận native ad** không bao giờ chạm vào JSON thô. Chúng:
+   - Gọi `AdsManager.loadNative...()` để kích hoạt load.
+   - Observe `AdsManager.<slot>Live` để nhận kết quả bất đồng bộ.
+   - Gọi `populateNativeAdView()` khi LiveData emit non-null.
+
+### Thêm Placement Native Mới
+
+1. Mở rộng `ad_config_debug.json` / `ad_config.json` với key mới (bao gồm `colorCTA`, `heightCTA`, `positionCTA`).
+2. Thêm property vào `AdRemoteConfig.kt` và `AdRemoteConfigExtensions.kt` để caller Kotlin đọc theo cách type-safe.
+3. Thêm `MutableLiveData<ApNativeAd?>` mới vào `AdsManager` (ví dụ: `val nativeHomeAdLive = MutableLiveData<ApNativeAd?>()`).
+4. Thêm method `loadNativeHome(activity, layoutRes)` trong `AdsManager` gọi `loadNativeInternal(...)`.
+5. Trong Activity cần hiển thị: gọi load trong `initViews()`, observe LiveData trong `observerData()`.
+6. Thêm slot vào `clearAll()` trong `AdsManager`.
+7. Cập nhật mặc định Remote Config bằng cách chạy lại app (giá trị được push tự động qua `RemoteConfigUtils`).
+
+### Thêm Placement Interstitial Mới
+
+1. Thêm key vào config JSON.
+2. Thêm property vào `AdRemoteConfig.kt` + extension.
+3. Thêm biến `private var interXxxAd: ApInterstitialAd?` vào `AdsManager`.
+4. Thêm `loadInterXxx(context)` và `showInterXxx(context, onAction: () -> Unit)` theo pattern của `loadInterWelcome`/`showInterWelcome`.
+5. Gọi load sớm (thường ở màn trước đó), gọi show ở điểm navigation cần thiết.
+
+## `BaseActivityWithBanner`
+
+Các Activity cần **banner** extend `BaseActivityWithBanner<VB>` thay vì `BaseActivity<VB>`.
+
+```kotlin
+class MainActivity : BaseActivityWithBanner<ActivityMainBinding>() {
+    override val bannerConfig = BannerConfig(AdRemoteConfig.banner_home, isCollapse = true)
+    // ...
+}
+```
+
+`BaseActivityWithBanner` tự động:
+- Load banner trong `onCreate()`.
+- Reload banner theo `reloadIntervalSeconds` khi activity resume.
+- Check `AppPurchase.getInstance().isPurchased(this)` trước khi show.
+- Dọn dẹp Handler khi `onPause`/`onDestroy`.
+
+`BaseActivity` (base class) **không còn chứa banner logic**. Chỉ các Activity thực sự cần banner mới extend `BaseActivityWithBanner`.
 
 ## Dialog Bắt buộc Cập nhật (`force_update_config.json`)
 

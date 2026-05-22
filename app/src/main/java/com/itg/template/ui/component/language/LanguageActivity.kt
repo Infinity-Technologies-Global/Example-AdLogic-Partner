@@ -2,10 +2,10 @@ package com.itg.template.ui.component.language
 
 import android.os.Handler
 import android.os.Looper
-import com.ads.module.ads.ERainAd
+import com.ads.module.ads.wrapper.ApNativeAd
 import com.itg.template.R
 import com.itg.template.ads.AdsManager
-import com.itg.template.ads.PreLoadNativeListener
+import com.itg.template.ads.AdsManager.loadNativeLanguageClick
 import com.itg.template.ads.RemoteConfigUtils
 import com.itg.template.ads.populateNativeAdView
 import com.itg.template.app.AppConstants
@@ -22,12 +22,10 @@ import com.itg.template.utils.Routes
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class LanguageActivity : BaseActivity<ActivityLanguageBinding>(), PreLoadNativeListener {
-    private var populateNativeLanguage = false
+class LanguageActivity : BaseActivity<ActivityLanguageBinding>() {
     private var timeDelayDoneButton = DEFAULT_TIME_DELAY_SHOW_LANGUAGE_DONE_BUTTON
     private var isFromSetting = false
     override val shouldShowNavigationBars = RemoteConfigUtils.getOnShowNavigationButton()
-    private var shouldShowNativeLanguageClickWhenLoaded = false
 
     companion object {
         const val EXTRA_FROM_SETTING = "extra_from_setting"
@@ -38,14 +36,13 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding>(), PreLoadNativeL
     private val fromSetting
         get() = intent.getBooleanExtra(AppConstants.KEY_SETTING, false)
 
-
     private var shouldDelayDoneButton = true
     private var selectedIso = LanguageData.defaultLanguage.iso
 
     private val languageAdapter: LanguageAdapter by lazy {
         LanguageAdapter(
             onItemLanguageClick = {
-                showNativeLanguageClick()
+                listenLanguageClickAd()
                 delayShowDoneButton()
                 selectedIso = it.iso
                 LanguageData.selectLanguage(it.iso)
@@ -54,15 +51,21 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding>(), PreLoadNativeL
         )
     }
 
-
     override fun initViews() {
         isFromSetting = intent.getBooleanExtra(EXTRA_FROM_SETTING, false)
-        AdsManager.setPreLoadNativeCallback(this)
         shouldDelayDoneButton = RemoteConfigUtils.shouldDelayLanguageDoneButton()
         timeDelayDoneButton = RemoteConfigUtils.getTimeDelayButtonDoneLanguage()
         initAdapter()
         initLayout()
-        initAds()
+
+        mBinding.root.postDelayed({
+            loadNativeLanguageClick(this, appSharedPref.firstLanguage, R.layout.layout_native_language_click)
+            initAds()
+        }, 100L)
+    }
+
+    override fun observerData() {
+        listenLanguageAd()
     }
 
     override fun onClickViews() {
@@ -71,17 +74,14 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding>(), PreLoadNativeL
             appSharedPref.languageCode = iso
             startNextActivity()
         }
-
         mBinding.tvDone.click {
             mBinding.ivDone.performClick()
         }
     }
 
-
     private fun initAdapter() {
         mBinding.recyclerView.adapter = languageAdapter
         resubmitLanguageData()
-
     }
 
     private fun initLayout() {
@@ -109,11 +109,40 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding>(), PreLoadNativeL
                 appSharedPref.firstOnBoarding,
                 R.layout.layout_native_onboarding
             )
-            showNativeLanguage()
         }
     }
 
+    private fun listenLanguageAd() {
+        AdsManager.nativeLanguageClickAdLive.removeObservers(this)
+        AdsManager.nativeLanguageAdLive.observe(this) { ad ->
+            if (ad != null) showNativeLanguage(ad) else mBinding.flAds.goneView()
+        }
+    }
+
+    private fun listenLanguageClickAd() {
+        AdsManager.nativeLanguageAdLive.removeObservers(this)
+        AdsManager.nativeLanguageClickAdLive.observe(this) { ad ->
+            if (ad != null) showNativeLanguage(ad) else mBinding.flAds.goneView()
+        }
+    }
+
+    private fun showNativeLanguage(ad: ApNativeAd) {
+        if (!isNetwork()) {
+            mBinding.flAds.goneView()
+            return
+        }
+        mBinding.flAds.visibleView()
+        populateNativeAdView(
+            this,
+            ad,
+            mBinding.flAds,
+            mBinding.shimmerAds.shimmerNativeSmall
+        )
+    }
+
     private fun delayShowDoneButton() {
+        if (mBinding.tvDone.visibility == android.view.View.VISIBLE) return
+
         if (shouldDelayDoneButton) {
             Handler(Looper.getMainLooper()).postDelayed({
                 mBinding.ivDone.visibleView()
@@ -137,68 +166,5 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding>(), PreLoadNativeL
             Routes.startOnBoardingActivity(this)
         }
         finish()
-    }
-
-
-    private fun showNativeLanguage() {
-        if (populateNativeLanguage) return
-
-        val ad = AdsManager.nativeLanguageAd
-        if (ad == null || !isNetwork()) {
-            mBinding.flAds.goneView()
-            return
-        }
-
-        mBinding.flAds.visibleView()
-        populateNativeLanguage = true
-        ERainAd.getInstance().populateNativeAdView(
-            this,
-            ad,
-            mBinding.flAds,
-            mBinding.shimmerAds.shimmerNativeSmall
-        )
-    }
-
-    private var populateNativeLanguageClick = false
-    private fun showNativeLanguageClick() {
-        if (populateNativeLanguageClick) return
-
-        val ad = AdsManager.nativeLanguageClickAd
-        if (!isNetwork()) {
-            shouldShowNativeLanguageClickWhenLoaded = false
-            return
-        }
-        if (ad == null) {
-            shouldShowNativeLanguageClickWhenLoaded = true
-            mBinding.flAds.visibleView()
-            return
-        }
-
-        shouldShowNativeLanguageClickWhenLoaded = false
-        mBinding.flAds.visibleView()
-        populateNativeLanguageClick = true
-        ERainAd.getInstance().populateNativeAdView(
-            this,
-            ad,
-            mBinding.flAds,
-            mBinding.shimmerAds.shimmerNativeSmall
-        )
-    }
-
-    override fun onLoadNativeSuccess() {
-        if (shouldShowNativeLanguageClickWhenLoaded && !populateNativeLanguageClick) {
-            showNativeLanguageClick()
-            return
-        }
-        if (!populateNativeLanguage && !populateNativeLanguageClick) {
-            showNativeLanguage()
-        }
-    }
-
-    override fun onLoadNativeFail() {
-        shouldShowNativeLanguageClickWhenLoaded = false
-        if (!populateNativeLanguage && !populateNativeLanguageClick) {
-            mBinding.flAds.goneView()
-        }
     }
 }

@@ -4,10 +4,10 @@ import androidx.activity.viewModels
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.CompositePageTransformer
 import androidx.viewpager2.widget.MarginPageTransformer
+import androidx.viewpager2.widget.ViewPager2
 import com.ads.module.ads.ERainAd
 import com.itg.template.R
 import com.itg.template.ads.AdsManager
-import com.itg.template.ads.PreLoadNativeListener
 import com.itg.template.ads.RemoteConfigUtils
 import com.itg.template.databinding.ActivityOnboardingBinding
 import com.itg.template.ui.bases.BaseActivity
@@ -19,51 +19,47 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlin.math.abs
 
 @AndroidEntryPoint
-class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>(), PreLoadNativeListener {
+class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>() {
 
     override val shouldShowNavigationBars = RemoteConfigUtils.getOnShowNavigationButton()
 
     override fun getLayoutActivity(): Int = R.layout.activity_onboarding
 
     private val onboardingViewModel by viewModels<OnboardingViewModel>()
-
     private lateinit var onboardingAdapter: OnboardingAdapter
-
     private val onboardingItems = mutableListOf<OnboardingItem>()
 
     override fun initViews() {
-        AdsManager.loadNativeOnboarding4(
-            this,
-            appSharedPref.firstOnBoarding,
-            R.layout.layout_native_onboarding
-        )
-        AdsManager.setPreLoadNativeCallback(this)
-        if (ERainAd.getInstance().shouldDisplayNativeOnboardingFull1) {
-            AdsManager.loadNativeOnboardingFull(
-                this,
-                appSharedPref.firstOnBoarding,
-                R.layout.layout_native_onboarding_full
-            )
-        }
-
-        if (ERainAd.getInstance().shouldDisplayInterOnboarding) {
-            AdsManager.loadInterOnboarding(this)
-        }
-
         initPage()
         initOnboardingItems()
+
+        mBinding.root.postDelayed({
+            AdsManager.loadNativeOnboarding4(
+                this,
+                appSharedPref.firstOnBoarding,
+                R.layout.layout_native_onboarding
+            )
+            if (ERainAd.getInstance().shouldDisplayNativeOnboardingFull1) {
+                AdsManager.loadNativeOnboardingFull(
+                    this,
+                    appSharedPref.firstOnBoarding,
+                    R.layout.layout_native_onboarding_full
+                )
+            }
+            if (ERainAd.getInstance().shouldDisplayInterOnboarding) {
+                AdsManager.loadInterOnboarding(this)
+            }
+        }, 100L)
     }
 
     override fun observerData() {
         super.observerData()
-
         onboardingViewModel.isNeedNextPage.observe(this) {
             val currentPosition = mBinding.viewPager.currentItem
             if (currentPosition < onboardingAdapter.itemCount - 1) {
                 mBinding.viewPager.currentItem = currentPosition + 1
             } else startNextActivity()
         }
-
     }
 
     private fun initPage() {
@@ -82,8 +78,11 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>(), PreLoadNat
             view.alpha = 1.0f - (1.0f - 0.3f) * absPosition
         }
         mBinding.viewPager.setPageTransformer(compositePageTransformer)
-    }
 
+        mBinding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {}
+        })
+    }
 
     private fun initOnboardingItems() {
         onboardingItems.clear()
@@ -114,7 +113,6 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>(), PreLoadNat
                 imageResId = R.mipmap.ic_launcher,
                 positionIndicator = 2,
                 isHasNativeFull = true
-
             )
         )
         onboardingItems.add(
@@ -131,27 +129,14 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>(), PreLoadNat
     }
 
     private fun startNextActivity() {
-//        showInterNotCheckGap(interOnboarding) {
-//            Routes.startMainActivity(this)
-//            finish()
-//        }
         appSharedPref.firstOnBoarding = false
-        AdsManager.showInterOnboarding(this, {
+        AdsManager.showInterOnboarding(this) {
             Routes.startMainActivity(this)
             finish()
-        })
-
-    }
-
-    override fun onLoadNativeSuccess() {
-        onboardingViewModel.notifyNativeAdFullLoaded()
-    }
-
-    override fun onLoadNativeFail() {
-
+        }
     }
 
     override fun onBackPressed() {
-//        super.onBackPressed()
+        // block back press on onboarding
     }
 }
