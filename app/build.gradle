@@ -152,7 +152,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-config'
 
     // Ads
-    implementation "com.github.trongluan99:ERain-Studio:1.5"
+    implementation "com.github.trongluan99:ERain-Studio:1.7"
     implementation "com.github.Infinity-Technologies-Global:Module-Update-GDPR:$module_update_gdpr_version"
     implementation "com.google.android.play:review-ktx:$play_review_ktx_version"
     implementation "com.facebook.shimmer:shimmer:$shimmer_version"
