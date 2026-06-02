@@ -3,6 +3,7 @@ package com.itg.template.ui.component.language
 import android.os.Handler
 import android.os.Looper
 import com.ads.module.ads.wrapper.ApNativeAd
+import com.itg.devconfig.utils.setOnAdminAdToggleListener
 import com.itg.template.R
 import com.itg.template.ads.AdsManager
 import com.itg.template.ads.AdsManager.loadNativeLanguageClick
@@ -53,6 +54,10 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding>() {
 
     override fun initViews() {
         isFromSetting = intent.getBooleanExtra(EXTRA_FROM_SETTING, false)
+        mBinding.tvTitle.setOnAdminAdToggleListener(){
+            Routes.startSplashActivity(this@LanguageActivity)
+            finish()
+        }
         shouldDelayDoneButton = RemoteConfigUtils.shouldDelayLanguageDoneButton()
         timeDelayDoneButton = RemoteConfigUtils.getTimeDelayButtonDoneLanguage()
         initAdapter()

@@ -40,7 +40,10 @@ fun populateNativeAdView(
 
     adView.findViewById<View>(R.id.ad_call_to_action)?.let { ctaButton ->
         ctaButton.updateLayoutParams {
-            height = (config?.heightCTA ?: 40).dpToPx(activity).toInt()
+            val rawHeightDp = config?.heightCTA ?: 40
+            val clampedHeightDp = rawHeightDp.coerceIn(36, 52)
+            height = clampedHeightDp.dpToPx(activity).toInt()
+
         }
         applyCtaColor(ctaButton, config?.colorCTA ?: "default")
     }

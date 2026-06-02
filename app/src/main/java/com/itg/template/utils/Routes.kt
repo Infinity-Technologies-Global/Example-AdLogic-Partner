@@ -19,7 +19,6 @@ object Routes {
             putExtra(AppConstants.KEY_TRACKING_SCREEN_FROM, fromActivity::class.java.simpleName)
             fromActivity.startActivity(this)
         }
-
     fun startOnBoardingActivity(fromActivity: Activity) =
         Intent(fromActivity, OnBoardingActivity::class.java).apply {
             putExtra(AppConstants.KEY_TRACKING_SCREEN_FROM, fromActivity::class.java.simpleName)

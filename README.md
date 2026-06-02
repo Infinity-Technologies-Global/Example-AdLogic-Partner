@@ -1,286 +1,246 @@
-![Ad Loading and Display Flow](img.png)
-
 **Language / Ngôn ngữ / भाषा:** [English](README.md) | [Tiếng Việt](README.vi.md) | [हिन्दी](README.hi.md)
 
-# Infinity Ads And Preferences Guide
+# Ads Integration Guide — Base Project (EN)
 
+This document is the **mandatory reference standard** for partner teams integrating ads into Infinity products. Any ad-related change must follow the architecture, load/show flow, and gating rules defined in this base project.
 
-📊 **[Xem sơ đồ Load và Show Ad](ad_flow_diagram.md)** - Splash, Language, Onboarding
+---
 
-This project ships with a local debug ad configuration and a single shared preferences entry point to keep onboarding state aligned across screens. The goal of this document is to explain how to work with `ad_config_debug.json` and `appSharedPref` without digging through the codebase.
+## Purpose and Scope
 
-## Debug Ad Configuration (`ad_config_debug.json`)
+### 1. Shared base for all apps
 
-- Location: `app/src/main/assets/ad_config_debug.json`.
-- Scope: loaded only in debug builds. Release builds read `ad_config.json` or the payload returned by Firebase Remote Config.
-- Consumers: `AdRemoteConfig` exposes strongly typed getters for every key and `RemoteConfigUtils` uses the file to build the default map pushed into Firebase Remote Config (so you always have safe fallbacks offline).
+`Example-AdLogic-Partner` is designed as the **template/base** for all Android apps in the ecosystem. Partners should fork or clone this base to keep:
 
-### Edit The File
+- The same Ads package structure (`AdRemoteConfig`, `RemoteConfigUtils`, `AdsManager`, `AdExtension`).
+- The same config source flow (assets + Firebase Remote Config).
+- The same LiveData observation pattern for native ad rendering.
+- The same QA entry through DevSetting on Language screen.
 
-1. Keep the top-level structure as a map where each entry name is the same key used inside the app (`inter_splash`, `native_language_1`, etc.).
-2. For every entry provide:
-   - `id`: the AdMob (or mediated) placement id.
-   - `isEnable`: toggle to allow quick enable/disable per placement.
-   - Optional `reloadIntervalSeconds` for banners.
-3. Stick to valid JSON. The Moshi adapter in `AdRemoteConfig` fails fast when a field is missing or malformed.
+Goal: reduce app-to-app drift, improve maintainability, simplify audits, and centralize technical support.
 
-Example:
-```
-{
-  "banner_splash": {
-    "id": "ca-app-pub-xxx/yyy",
-    "isEnable": true,
-    "reloadIntervalSeconds": 30
-  }
+### 2. Load/show logic is the optimized baseline
+
+The current base flow — early init in `GlobalApp`, config sync in `Splash`, next-screen preload, centralized gating in `AdsManager`, and organic handling via `ERainAd.shouldDisplay...` — is the result of iterative optimization for:
+
+- Correct load timing
+- Reduced UI jank
+- Safe fallback when offline / purchased
+- Cohort-based display control
+
+**Partners must not change the core flow** (for example: calling SDK directly and bypassing `AdsManager`, removing organic gating, or changing load/show order) unless approved by Infinity technical team.
+
+### 3. Existing ad-enabled screens must follow current implementation
+
+The following screens are already implemented and must preserve load/show behavior, preload points, and gating conditions:
+
+| Screen | Placements / behavior |
+| --- | --- |
+| Splash | `inter_splash`, preload `native_language`, `open_resume` config |
+| Language | Native language/click, preload onboarding page 1, DevSetting (`tvDone`) |
+| Onboarding | Native page 1 & 4, native full, `inter_onboarding`, uninstall widget |
+| Welcome / Resume | `native_welcome`, `inter_welcome`, `ResumeAdsEntryRule` |
+| Banner (Home + screens extending `BaseActivityWithBanner`) | Normal / collapsible banner, reload by config |
+
+When customizing UI, only adjust layout/container. Do **not** remove `isEnable`, purchase, network, or `shouldDisplay...` checks.
+
+### 4. Custom app screens must follow load/show rules
+
+For any **new custom screen** (not already present in base), partners must follow the same rule set:
+
+1. Add placement keys to `ad_config.json` / `ad_config_debug.json` and add matching properties in `AdRemoteConfig`.
+2. Add load methods in `AdsManager` (native via `loadNativeInternal`, interstitial via `load` + `show` pattern).
+3. In Activity/Fragment: load in `initViews` (optional short `postDelayed`), observe LiveData, call `populateNativeAdView` when ad exists, hide container on `null`.
+4. For sensitive placements (onboarding-like, welcome, widget...): attach the relevant `ERainAd.getInstance().shouldDisplay...` gate or align with Infinity before shipping.
+5. For banners: extend `BaseActivityWithBanner`, configure `BannerConfig`, do not load banner outside `AdsManager.loadBanner`.
+
+Detailed UI/Ads reference (CTA size, Done button delay, native placement by page):
+[Infinity UI Documentation — Language & Onboarding](https://interim-pink-4gmxxkfh.edgeone.app/).
+
+---
+
+## 1. Ads Initialization and Config
+
+### 1.1 Config sources
+- Debug: read `ad_config_debug.json`.
+- Release: read `ad_config.json`, then optionally override from Firebase Remote Config (`ad_remote_config`).
+
+### 1.2 Initialization points
+- `GlobalApp.onCreate()`:
+  - `AdRemoteConfig.initializeFromAssets(this)`
+  - `ERainAd.getInstance().init(...)`
+- `SplashActivity.checkRemoteConfigResult()`:
+  - `AdRemoteConfig.initialize(this, RemoteConfigUtils.getAdRemoteConfig())` to apply latest remote config.
+
+### 1.3 `initAds()` integration in `GlobalApp` (recommended standard)
+
+In the current base, the core integration is implemented in `GlobalApp.initAds()`. Partners should keep this pattern when creating new apps:
+
+1. Select `environment` by build type (`ERainAdConfig.ENVIRONMENT_DEVELOP` / `ERainAdConfig.ENVIRONMENT_PRODUCTION`).
+2. Create `mERainAdConfig = ERainAdConfig(this, environment)`.
+3. Set required config fields before calling `ERainAd.init(...)`:
+   - `adjustConfig`
+   - `facebookClientToken`
+   - `adjustTokenTiktok`
+   - `intervalInterstitialAd`
+   - `idAdResume`
+4. Call `ERainAd.getInstance().init(this, mERainAdConfig)`.
+5. Apply extra resume/inter rules:
+   - `Admob.getInstance().setDisableAdResumeWhenClickAds(true)`
+   - `Admob.getInstance().setOpenActivityAfterShowInterAds(true)`
+   - `AppOpenManager.getInstance().disableAppResumeWithActivity(...)` for excluded screens.
+
+Reference snippet:
+```kotlin
+private fun initAds() {
+    val environment =
+        if (BuildConfig.DEBUG) ERainAdConfig.ENVIRONMENT_DEVELOP else ERainAdConfig.ENVIRONMENT_PRODUCTION
+    mERainAdConfig = ERainAdConfig(this, environment)
+
+    mERainAdConfig.adjustConfig = AdjustConfig(true, resources.getString(R.string.adjust_token))
+    mERainAdConfig.facebookClientToken = resources.getString(R.string.facebook_client_token)
+    mERainAdConfig.adjustTokenTiktok = resources.getString(R.string.event_token)
+    mERainAdConfig.intervalInterstitialAd = 35
+    mERainAdConfig.idAdResume = ""
+
+    ERainAd.getInstance().init(this, mERainAdConfig)
 }
 ```
 
-### Initialize And Refresh
+> Note: `initAdRemoteConfig()` should still run before `initAds()`, and remote config is still synced in `SplashActivity` via `RemoteConfigUtils.init(...)` + `AdRemoteConfig.initialize(...)`.
 
-- The ads module bootstraps itself by running `AdRemoteConfig.initialize(context)` very early (usually inside `GlobalApp`).
-- When `BuildConfig.DEBUG` is true, the initializer always reads `ad_config_debug.json`. No remote call is needed.
-- `RemoteConfigUtils.init(context, listener)` loads the same defaults into Firebase Remote Config and then fetches live overrides when available.
-- If you change the JSON file while the app is running, call `AdRemoteConfig.reset()` followed by `AdRemoteConfig.initializeFromAssets(context)` to reload it without restarting the process.
+### 1.4 DevSetting entry for Ads QA
+- `LanguageActivity`: `mBinding.tvDone.setOnAdminAdToggleListener()`
+- QA can check: sdk versions, mediation, config id, ad id, reset organic.
 
-### Fetch Remote Overrides
+> **Mandatory in `app/build.gradle`:** to make DevConfig UI show version info correctly, partners must declare all 3 `buildConfigField` lines below (in both `debug` and `release`):
+>
+> ```gradle
+> buildConfigField "String", "ERAIN_STUDIO_VERSION", "\"$erain_studio_version\""
+> buildConfigField "String", "PLAY_SERVICES_ADS_VERSION", "\"$play_services_ads_version\""
+> buildConfigField "String", "GDPR_MODULE_VERSION", "\"$module_update_gdpr_version\""
+> ```
 
-- Add a JSON string named `ad_remote_config` in Firebase Remote Config that mirrors the same structure. The utility method `RemoteConfigUtils.getAdRemoteConfig()` returns the raw string once `fetchAndActivate()` finishes.
-- To apply remote overrides at runtime:
-  1. Call `RemoteConfigUtils.getAdRemoteConfig()`.
-  2. When the string is not blank, invoke `AdRemoteConfig.initializeFromJson(jsonString)`.
-  3. All callers using `AdRemoteConfig.getInstance()` will start serving the new placements immediately.
+## 2. Load/Show Ads by placement
 
-### Troubleshooting
+### 2.1 Splash
+- Inter Splash:
+  - Condition: `AdRemoteConfig.inter_splash.isEnable == true` and network available.
+  - API: `ERainAd.getInstance().loadSplashInterstitialAds(...)`.
+  - On successful load (`onAdLoaded`), preload `native_language`.
+- Open Resume:
+  - Enabled/disabled by `ResumeAdsEntryRule.shouldEnableOpenResume()`.
 
-- If a key is missing, `AdRemoteConfig` logs a warning with Timber and returns a disabled placeholder so the UI can skip rendering the ad slot gracefully.
-- Make sure every new placement key has a matching property in `AdRemoteConfig` to keep compile-time safety.
+### 2.2 Language
+- Native language:
+  - Preload from Splash: `AdsManager.loadNativeLanguage(...)`
+  - Click variant: `AdsManager.loadNativeLanguageClick(...)`
+- Early preload for onboarding page 1:
+  - `AdsManager.loadNativeOnboarding1(...)`
 
-## Ad Language Layout (`ad_language_layout.json`)
+### 2.3 Onboarding
+- `AdsManager.loadNativeOnboarding4(...)`
+- `AdsManager.loadNativeOnboardingFull(...)`
+- `AdsManager.loadInterOnboarding(...)`, then show via `AdsManager.showInterOnboarding(...)` at onboarding completion.
 
-- Location: `app/src/main/assets/ad_language_layout.json`.
-- Purpose: defines typography, padding, and colors for the native ad layout used on the language/onboarding flow.
-- Fallback flow: `RemoteConfigUtils.getAdLanguageLayout()` loads this asset first and only replaces it with the Remote Config value (`ad_language_layout`) when a non-empty payload exists.
+### 2.4 Welcome / Resume
+- Native welcome:
+  - `AdsManager.loadNativeWelcome(...)` gated by `shouldDisplayNativeWelcomeBack`.
+- Inter welcome:
+  - `AdsManager.loadInterWelcome(...)`, `AdsManager.showInterWelcome(...)`.
+  - Welcome flow is triggered by `AppLifecycleObserver` when `ResumeAdsEntryRule.shouldShowWelcomeOnResume()` and `shouldDisplayInterWelcomeBack` allow it.
 
-### Customize Locally
+### 2.5 Banner (normal / collapsible)
+- Use `BaseActivityWithBanner`.
+- `AdsManager.loadBanner(..., isCollapse = false)` => normal banner.
+- `AdsManager.loadBanner(..., isCollapse = true)` => collapsible banner (SDK expand/collapse behavior).
+- Reload interval follows `reloadIntervalSeconds`.
 
-1. Edit the JSON file in assets to adjust sizes, colors, or spacing keys such as `headlineTextSize`, `contentPadding`, or `callToActionBackgroundColor`.
-2. Hot reload by calling `AdRemoteConfig.reset()` + `AdRemoteConfig.initializeFromAssets(context)` or simply reinstalling the debug build.
+## 3. Global conditions for loading ads
 
-### Override From Remote Config
+In `AdsManager`, an ad loads only when all conditions pass:
+- `adUnitConfig.isEnable == true`
+- `!AppPurchase.getInstance().isPurchased(...)`
+- Network available
+- If organic gate exists: `shouldDisplay... == true`
 
-1. Create a Remote Config parameter named `ad_language_layout` with the same JSON structure.
-2. After `RemoteConfigUtils.fetchAndActivate()` completes, the new JSON string automatically overrides the asset when `RemoteConfigUtils.getAdLanguageLayout()` is invoked.
-3. Keep the schema identical to prevent crashes in the view layer.
+If any condition fails, native LiveData emits `null` so UI hides the ad container.
 
-## Onboarding Ad Display Rules
+## 4. `shouldDisplay*` variables (Ads / Organic)
+- `shouldDisplayNativeOnboardingNormal1`
+  - Used in `AdsManager.loadNativeOnboarding1(...)`
+- `shouldDisplayNativeOnboardingNormal2`
+  - Used in `AdsManager.loadNativeOnboarding4(...)`
+- `shouldDisplayNativeOnboardingFull1`
+  - Used in `AdsManager.loadNativeOnboardingFull(...)`
+  - Also used in `OnBoardingActivity.initOnboardingItems()` to decide inserting full native page
+- `shouldDisplayInterOnboarding`
+  - Used in both `loadInterOnboarding(...)` and `showInterOnboarding(...)`
+- `shouldDisplayNativeWelcomeBack`
+  - Used in `loadNativeWelcome(...)`
+- `shouldDisplayInterWelcomeBack`
+  - Used in `AppLifecycleObserver` (gate for welcome flow)
+  - Also part of `loadInterWelcome(...)` condition
+- `shouldDisplayWidgetUninstall`
+  - Used in `OnBoardingActivity.applyUninstallWidgetShortcutsFromRemoteConfig()` to enable/disable uninstall widget
 
-The onboarding flow only renders high-impact ad placements when both Firebase Remote Config and the SDK-side gating methods agree that the slot should show. Use the snippet below as a reference:
+## 5. Organic mechanism
 
-```
-if (ERainAd.getInstance().shouldDisplayNativeOnboardingFull1) {
-    AdsManager.loadNativeOnboardingFull(
-        this,
-        appSharedPref.firstOnBoarding,
-        R.layout.layout_native_onboarding_full
+Organic here is user classification from Ads SDK / growth logic used to:
+- Reduce frequency or disable sensitive ad slots for certain users
+- Balance retention, UX, and revenue
+- Run cohort-based rules without rewriting each screen
+
+How it works in this app:
+- The app does not compute organic locally; it reads `ERainAd.getInstance().shouldDisplay...` flags.
+- When organic/cohort rules change, these flags change and directly affect load/show behavior per slot.
+- `reset organic` in DevSetting helps QA restore clean test state and re-verify all ad slots + uninstall widget behavior.
+
+## 6. Load/show examples (quick reference)
+
+### 6.1 Inter Splash
+```kotlin
+if (AdRemoteConfig.inter_splash.isEnable && isNetwork(this)) {
+    ERainAd.getInstance().loadSplashInterstitialAds(
+        this, AdRemoteConfig.inter_splash.id, 30000, 5000, object : AdCallback() {
+            override fun onNextAction() { moveActivity() }
+        }
     )
-}
+} else moveActivity()
 ```
 
-- `native_onboarding_full_1`: require `AdRemoteConfig.native_onboarding_fullscreen_1_3.isEnable == true` and `ERainAd.getInstance().shouldDisplayNativeOnboardingFull1 == true`. Remove any legacy `organic` flag checks.
-- `native_onboarding_full_2`: require `AdRemoteConfig.native_onboarding_fullscreen_2_3.isEnable == true` and `ERainAd.getInstance().shouldDisplayNativeOnboardingFull2 == true`. Remove `organic`.
-- `inter_onboarding`: require `AdRemoteConfig.inter_onboarding.isEnable == true` (or the equivalent key defined by your config) and `ERainAd.getInstance().shouldDisplayInterOnboarding() == true`. Remove `organic`.
-- Widget uninstall builds: do not surface the widget when `ERainAd.getInstance().shouldDisplayWidgetUninstall() == false`, regardless of remote configuration. Replace any legacy `organic` filters with this predicate.
-
-## Shared Preferences (`appSharedPref`)
-
-`appSharedPref` is the single dependency injected into every `BaseActivity` and `BaseDialog` to provide screen state. It is backed by `AppSharedPreferencesApp`, which wraps Android `SharedPreferences` with strongly typed properties.
-
-### Stored Flags
-
-- `languageCode`: last language selected, defaults to `en`.
-- `firstLanguage`: true until the user finishes the language picker.
-- `firstOnBoarding`: true until onboarding completes.
-- `isConfirmConsent`: marks that GDPR consent is collected.
-- `isUserGlobal`: indicates the user is in a GDPR-required region.
-
-### Typical Usage
-
-- Activities call `appSharedPref` during navigation decisions. For example, `SplashActivity` opens the consent dialog only when `isConfirmConsent` is false and `isUserGlobal` is true.
-- `LanguageActivity` updates `languageCode` and flips `firstOnBoarding` to control whether onboarding appears again.
-
-Access pattern example:
-```
-appSharedPref.firstOnBoarding = false
-appSharedPref.languageCode = isoCode
-if (appSharedPref.isConfirmConsent.not()) {
-    showConsentDialog()
-}
-```
-
-### Best Practices
-
-- Avoid reading `SharedPreferences` directly. Inject `AppSharedPref` instead so instrumentation tests can replace it with an in-memory fake.
-- Keep new keys inside `AppSharedPreferencesApp` to guarantee a single source of truth and default values.
-- When you add a new boolean flag, always choose a name that starts with `is`, `has`, or `can` to keep the code self-explanatory.
-
-With these two pieces (debug ad config + shared preferences) understood, you can safely iterate on ad placements and onboarding flows without unexpected regressions.
-
-### Production `ad_config.json` Refresh
-
-- Release builds read `app/src/main/assets/ad_config.json` by default.
-- To ship a hotfix without re-submitting to the store, upload the same JSON under the Remote Config key `ad_remote_config`. After `fetchAndActivate()`, call:
-
+### 6.2 Native (via AdsManager)
 ```kotlin
-RemoteConfigUtils.getAdRemoteConfig()
-    .takeIf { it.isNotBlank() }
-    ?.let(AdRemoteConfig::initializeFromJson)
+AdsManager.loadNativeOnboarding1(this, appSharedPref.firstOnBoarding, R.layout.layout_native_onboarding)
+AdsManager.nativeOnboarding1AdLive.observe(this) { ad ->
+    if (ad == null) hideAd() else showAd(ad)
+}
 ```
 
-This rehydrates `AdRemoteConfig` at runtime with the new placements.
-
-## Ads Package Overview (`app/src/main/java/com/itg/template/ads`)
-
-| File | Responsibility |
-| --- | --- |
-| `AdRemoteConfig.kt` | Loads the JSON assets/Remote Config payload and exposes typed getters per placement. |
-| `AdRemoteConfigExtensions.kt` | Convenience val extensions for strongly typed keys like `inter_splash`, `native_language_1`, etc. |
-| `RemoteConfigUtils.kt` | Bootstraps Firebase Remote Config, pushes local defaults, exposes helper getters (`getAdRemoteConfig()`, `getAdLanguageLayout()`, `getForceUpdateConfig()`). |
-| `AdsManager.kt` | Centralized loader for all ads. Every native ad slot exposes a `MutableLiveData<ApNativeAd?>` for Activity/Fragment observation. Interstitials are loaded/shown via dedicated methods. Observes network conditions and purchase state. |
-| `AdExtension.kt` | Top-level `populateNativeAdView()` automatically retrieves `heightCTA`/`colorCTA` from `AdsManager.getAdConfig(ad)`. ERainAd extension function retained for backward compatibility. |
-
-### Native Ad: LiveData Pattern
-
-Since migrating to the new template, **all native ads are exposed via `MutableLiveData`** instead of the old variable cache + callback interface.
-
-**How to load and observe a native ad in an Activity:**
-
+### 6.3 Inter (Onboarding)
 ```kotlin
-// 1. Trigger load in initViews() (optional 100ms delay to avoid jank)
-mBinding.root.postDelayed({
-    AdsManager.loadNativeWelcome(this, R.layout.layout_native_welcome)
-}, 100L)
-
-// 2. Observe LiveData in observerData()
-AdsManager.nativeWelcomeAdLive.observe(this) { ad ->
-    if (ad == null) {
-        mBinding.frAds.goneView()
-    } else {
-        mBinding.frAds.visibleView()
-        populateNativeAdView(this, ad, mBinding.frAds, mBinding.shimmerAds.shimmerNativeLarge)
-    }
+AdsManager.loadInterOnboarding(this)
+AdsManager.showInterOnboarding(this) {
+    goNextScreen()
 }
 ```
 
-**Available LiveData slots in `AdsManager`:**
-
-| LiveData | Ad slot |
-| --- | --- |
-| `nativeLanguageAdLive` | Native ad on the language selection screen |
-| `nativeLanguageClickAdLive` | Native ad after the user taps a language |
-| `nativeOnboarding1AdLive` | Native ad on onboarding page 1 |
-| `nativeOnboarding4AdLive` | Native ad on onboarding page 4 |
-| `nativeAdOnBoardingFullLive` | Full-screen native ad on onboarding page 3 |
-| `nativeSurveyAdLive` | Native ad on the uninstall survey screen |
-| `nativeConfirmUninstallAdLive` | Native ad on the confirm-uninstall screen |
-| `nativeWelcomeAdLive` | Native ad on the Welcome screen (resume flow) |
-
-> **Important:** When there is no network or the user has purchased, LiveData emits `null`. Activities/Fragments must handle both cases (`null` -> hide container, non-null -> populate).
-
-### Typical Flow
-
-1. `GlobalApp.onCreate()`:
-   - Calls `AdRemoteConfig.initializeFromAssets(context)` to load local config.
-   - Initializes `ERainAd` with the environment config.
-   - Sets dialog layouts (`prepareLoadingAdsDialogLayout`, `resumeLoadingDialogLayout`).
-   - If `ResumeAdsEntryRule.shouldShowWelcomeOnResume()`, registers `AppLifecycleObserver` + `AppActivityLifecycleCallbacks`.
-
-2. `SplashActivity`:
-   - Runs `RemoteConfigUtils.init()` and waits for the remote config fetch to complete (with timeout).
-   - Calls `AdRemoteConfig.initialize(context, jsonFromRemote)` to apply the latest config.
-   - Immediately loads `native_language` for the next screen.
-   - Loads and shows `inter_splash` if enabled.
-   - Enables/disables open resume based on `ResumeAdsEntryRule.shouldEnableOpenResume()`.
-
-3. **Activities receiving native ads** never touch raw JSON. They:
-   - Call `AdsManager.loadNative...()` to trigger loading.
-   - Observe `AdsManager.<slot>Live` to receive the async result.
-   - Call `populateNativeAdView()` when LiveData emits a non-null value.
-
-### Adding A New Native Placement
-
-1. Extend `ad_config_debug.json` / `ad_config.json` with the new key (include `colorCTA`, `heightCTA`, `positionCTA`).
-2. Add a property to `AdRemoteConfig.kt` and `AdRemoteConfigExtensions.kt` for type-safe access.
-3. Add a new `MutableLiveData<ApNativeAd?>` to `AdsManager` (e.g. `val nativeHomeAdLive = MutableLiveData<ApNativeAd?>()`).
-4. Add a `loadNativeHome(activity, layoutRes)` method in `AdsManager` that calls `loadNativeInternal(...)`.
-5. In the target Activity: call load in `initViews()`, observe LiveData in `observerData()`.
-6. Add the slot to `clearAll()` in `AdsManager`.
-7. Update the Remote Config defaults by re-running the app once (values are pushed automatically via `RemoteConfigUtils`).
-
-### Adding A New Interstitial Placement
-
-1. Add the key to the config JSON.
-2. Add a property to `AdRemoteConfig.kt` + extension.
-3. Add a `private var interXxxAd: ApInterstitialAd?` variable to `AdsManager`.
-4. Add `loadInterXxx(context)` and `showInterXxx(context, onAction: () -> Unit)` following the `loadInterWelcome`/`showInterWelcome` pattern.
-5. Trigger load early (usually on the preceding screen), trigger show at the navigation point needed.
-
-## `BaseActivityWithBanner`
-
-Activities that need **banner ads** should extend `BaseActivityWithBanner<VB>` instead of `BaseActivity<VB>`.
-
+### 6.4 Normal banner
 ```kotlin
-class MainActivity : BaseActivityWithBanner<ActivityMainBinding>() {
-    override val bannerConfig = BannerConfig(AdRemoteConfig.banner_home, isCollapse = true)
-    // ...
-}
+override val bannerConfig = BannerConfig(
+    adUnitConfig = AdRemoteConfig.banner_home,
+    isCollapse = false
+)
 ```
 
-`BaseActivityWithBanner` automatically:
-- Loads banner in `onCreate()`.
-- Reloads banner based on `reloadIntervalSeconds` when activity resumes.
-- Checks `AppPurchase.getInstance().isPurchased(this)` before showing.
-- Cleans up Handler in `onPause`/`onDestroy`.
-
-`BaseActivity` (base class) **no longer contains banner logic**. Only Activities that truly need banners should extend `BaseActivityWithBanner`.
-
-## Force Update Dialog (`force_update_config.json`)
-
-- Location: `app/src/main/assets/force_update_config.json`.
-- Remote key: `force_update_config` (string) in Firebase Remote Config. The local asset is used as a default value when the remote payload is empty.
-- Data model: [`ForceUpdateConfig`](app/src/main/java/com/itg/template/data/model/ForceUpdateConfig.kt).
-- Consumers: `RemoteConfigUtils.getForceUpdateConfig()` parses the JSON and `MainActivity` shows the Auto/Manual Force Update dialog (see `button_show_force_update`).
-
-### JSON Schema
-
-```json
-{
-  "icon": "https://.../force_icon.png",
-  "title": "Update Required",
-  "description": "New features and fixes are waiting for you.",
-  "storeLink": "https://play.google.com/store/apps/details?id=com.itg.template",
-  "minVersionCode": 123,
-  "force": true
-}
+### 6.5 Collapsible banner (expand/collapse)
+```kotlin
+override val bannerConfig = BannerConfig(
+    adUnitConfig = AdRemoteConfig.banner_home,
+    isCollapse = true
+)
 ```
 
-| Field | Description |
-| --- | --- |
-| `icon` | Optional URL shown above the copy. Falls back to launcher icon. |
-| `title` | Optional. Defaults to the app name when blank. |
-| `description` | Optional. Defaults to `force_update_message`. |
-| `storeLink` | Google Play deep link. Required for automatic prompt. |
-| `minVersionCode` | Minimum `BuildConfig.VERSION_CODE` required before prompting. |
-| `force` | When `true`, dialog is not cancelable. |
+## 7. Additional reference
 
-After `RemoteConfigUtils.init()` completes, `maybeShowForceUpdateDialog()` compares the remote payload with the installed `versionCode` and renders `dialog_force_update.xml` through `ForceUpdateDialog`. The “Show Force Update” button in `MainActivity` reuses the last fetched config so QA can preview the dialog instantly.
-
-## Blur-Based System Dialogs
-
-- `BlurLoadingLayout` (root for `layout_prepare_ads.xml`, `dialog_no_internet.xml`, `dialog_force_update.xml`) captures the underlying window and feeds it to [BlurView](https://github.com/Dimezis/BlurView) for an iOS-like overlay blur.
-- `NoInternetDialog` and `ForceUpdateDialog` (located in `ui/component/main/dialog`) are reusable helpers that inflate those layouts, handle button callbacks, and expose `show()/dismiss()` to the activity layer.
-- The dialogs automatically snapshot the current activity, so even third-party overlays inherit the blurred background without extra code in the activity.
-
-### Preview / Manual Trigger
-
-- `button_show_force_update` in `activity_main.xml` triggers `ForceUpdateDialog` using the cached Remote Config payload (or the local fallback). This is useful during QA to review copy and design without changing Remote Config.
-- Network loss is monitored via `ConnectionLiveData`; `NoInternetDialog` appears automatically whenever the observer emits `false`, and is dismissed as soon as connectivity is restored.
+- [Infinity UI Documentation — Language & Onboarding](https://interim-pink-4gmxxkfh.edgeone.app/) — UI, Remote Config, and ad-unit display conditions (placement/method names should be cross-checked against this document).
