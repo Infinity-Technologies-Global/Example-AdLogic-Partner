@@ -46,9 +46,12 @@ object AdsManager {
         config: AdUnitConfig,
         layoutRes: Int,
         liveData: MutableLiveData<ApNativeAd?>,
+        shouldDisplay: Boolean = true,
     ) {
-        if (!config.isEnable || AppPurchase.getInstance()
-                .isPurchased(activity) || !activity.isNetworkAvailable()
+        if (!config.isEnable
+            || AppPurchase.getInstance().isPurchased(activity)
+            || !activity.isNetworkAvailable()
+            || !shouldDisplay
         ) {
             liveData.postValue(null)
             return
@@ -80,17 +83,17 @@ object AdsManager {
 
     fun loadNativeOnboarding1(activity: Activity, isFirst: Boolean, layoutRes: Int) {
         val config = if (isFirst) AdRemoteConfig.native_onboarding_1_1 else AdRemoteConfig.native_onboarding_2_1
-        loadNativeInternal(activity, config, layoutRes, nativeOnboarding1AdLive)
+        loadNativeInternal(activity, config, layoutRes, nativeOnboarding1AdLive, ERainAd.getInstance().shouldDisplayNativeOnboardingNormal1)
     }
 
     fun loadNativeOnboarding4(activity: Activity, isFirst: Boolean, layoutRes: Int) {
         val config = if (isFirst) AdRemoteConfig.native_onboarding_1_4 else AdRemoteConfig.native_onboarding_2_4
-        loadNativeInternal(activity, config, layoutRes, nativeOnboarding4AdLive)
+        loadNativeInternal(activity, config, layoutRes, nativeOnboarding4AdLive, ERainAd.getInstance().shouldDisplayNativeOnboardingNormal2)
     }
 
     fun loadNativeOnboardingFull(activity: Activity, isFirst: Boolean, layoutRes: Int) {
         val config = if (isFirst) AdRemoteConfig.native_onboarding_fullscreen_1_3 else AdRemoteConfig.native_onboarding_fullscreen_2_3
-        loadNativeInternal(activity, config, layoutRes, nativeAdOnBoardingFullLive)
+        loadNativeInternal(activity, config, layoutRes, nativeAdOnBoardingFullLive, ERainAd.getInstance().shouldDisplayNativeOnboardingFull1)
     }
 
     fun loadNativeSurvey(activity: Activity, layoutRes: Int) {
@@ -102,12 +105,16 @@ object AdsManager {
     }
 
     fun loadNativeWelcome(activity: Activity, layoutRes: Int) {
-        loadNativeInternal(activity, AdRemoteConfig.native_welcome, layoutRes, nativeWelcomeAdLive)
+        loadNativeInternal(activity, AdRemoteConfig.native_welcome, layoutRes, nativeWelcomeAdLive,
+            ERainAd.getInstance().shouldDisplayNativeWelcomeBack)
     }
 
     fun loadInterOnboarding(context: Context) {
         val config = AdRemoteConfig.inter_onboarding
-        if (!config.isEnable || AppPurchase.getInstance().isPurchased(context)) {
+        if (!config.isEnable
+            || AppPurchase.getInstance().isPurchased(context)
+            || !ERainAd.getInstance().shouldDisplayInterOnboarding
+        ) {
             interOnboarding = null
             return
         }
@@ -118,14 +125,15 @@ object AdsManager {
     fun showInterOnboarding(context: Context, onAction: () -> Unit) {
         val interstitial = interOnboarding
         if (interstitial != null && interstitial.isReady && !AppPurchase.getInstance()
-                .isPurchased(context)
+                .isPurchased(context) && ERainAd.getInstance().shouldDisplayInterOnboarding
         ) {
-            ERainAd.getInstance().forceShowInterstitial(context, interstitial, object : AdCallback() {
-                override fun onNextAction() {
-                    super.onNextAction()
-                    onAction()
-                }
-            }, true)
+            ERainAd.getInstance()
+                .forceShowInterstitial(context, interstitial, object : AdCallback() {
+                    override fun onNextAction() {
+                        super.onNextAction()
+                        onAction()
+                    }
+                }, true)
         } else {
             onAction()
         }
@@ -133,7 +141,10 @@ object AdsManager {
 
     fun loadInterWelcome(context: Context) {
         val config = AdRemoteConfig.inter_welcome
-        if (!config.isEnable || AppPurchase.getInstance().isPurchased(context)) {
+        if (!config.isEnable
+            || AppPurchase.getInstance().isPurchased(context)
+            || ERainAd.getInstance().shouldDisplayInterWelcomeBack
+        ) {
             interWelcomeAd = null
             return
         }

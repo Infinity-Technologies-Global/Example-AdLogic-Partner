@@ -28,10 +28,13 @@ object RemoteConfigUtils {
     private const val AD_REMOTE_CONFIG = "ad_remote_config"
     private const val FORCE_UPDATE_CONFIG = "force_update_config"
 
+    private const val ON_ENABLE_UNINSTALL_WIDGET = "on_enable_uninstall_widget"
+
     private val mapConditionForAd: HashMap<String, Any> = hashMapOf(
         ON_SHOW_DIALOG_CONSENT to true,
         ON_SHOW_NAVIGATION_BUTTON to false,
         DELAY_SHOW_LANGUAGE_DONE_BUTTON to true,
+        ON_ENABLE_UNINSTALL_WIDGET to true,
         TIME_DELAY_SHOW_LANGUAGE_DONE_BUTTON to DEFAULT_TIME_DELAY_SHOW_LANGUAGE_DONE_BUTTON,
     )
     
@@ -43,6 +46,9 @@ object RemoteConfigUtils {
 
     fun getOnShowNavigationButton(): Boolean = getBoolean(ON_SHOW_NAVIGATION_BUTTON)
     fun getOnShowDialogConsent(): Boolean = getBoolean(ON_SHOW_DIALOG_CONSENT)
+
+    fun getOnEnableUninstallWidget(): Boolean = getBoolean(ON_ENABLE_UNINSTALL_WIDGET, true)
+
     interface Listener {
         fun loadSuccess()
     }

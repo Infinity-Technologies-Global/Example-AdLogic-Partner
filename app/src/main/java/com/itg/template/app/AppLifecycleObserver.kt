@@ -3,6 +3,7 @@ package com.itg.template.app
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.ads.module.admob.AppOpenManager
+import com.ads.module.ads.ERainAd
 import com.ads.module.billing.AppPurchase
 import com.itg.template.ui.component.language.LanguageActivity
 import com.itg.template.ui.component.onboarding.OnBoardingActivity
@@ -30,6 +31,7 @@ class AppLifecycleObserver : DefaultLifecycleObserver {
             if (!isDisable && ResumeAdsEntryRule.shouldShowWelcomeOnResume()
                 && !AppOpenManager.getInstance().isShowingAd
                 && !AppPurchase.getInstance().isPurchased(currentActivity.applicationContext)
+                && ERainAd.getInstance().shouldDisplayInterWelcomeBack
             ) {
                 Routes.startWelcomeActivity(currentActivity)
             }

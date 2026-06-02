@@ -1,286 +1,240 @@
-![Ad Loading and Display Flow](img.png)
-
 **Language / Ngôn ngữ / भाषा:** [English](README.md) | [Tiếng Việt](README.vi.md) | [हिन्दी](README.hi.md)
 
-# Hướng dẫn Infinity Ads và Preferences
+# Hướng dẫn tích hợp Ads — Base Project (VI)
 
+Tài liệu này là **chuẩn tham chiếu bắt buộc** dành cho đối tác phát triển khi tích hợp quảng cáo trên các sản phẩm của Infinity. Mọi thay đổi liên quan Ads phải tuân thủ kiến trúc, luồng load/show và các rule gating được mô tả trong project base này.
 
-📊 **[Xem sơ đồ Load và Show Ad](ad_flow_diagram.md)** - Splash, Language, Onboarding
+---
 
-Dự án này đi kèm với cấu hình quảng cáo debug cục bộ và một entry point shared preferences duy nhất để giữ trạng thái onboarding đồng bộ giữa các màn hình. Mục tiêu của tài liệu này là giải thích cách làm việc với `ad_config_debug.json` và `appSharedPref` mà không cần phải tìm hiểu sâu vào codebase.
+## Mục đích và phạm vi áp dụng
 
-## Cấu hình Quảng cáo Debug (`ad_config_debug.json`)
+### 1. Base chung cho toàn bộ ứng dụng
 
-- Vị trí: `app/src/main/assets/ad_config_debug.json`.
-- Phạm vi: chỉ được load trong các bản debug. Các bản release đọc `ad_config.json` hoặc payload trả về bởi Firebase Remote Config.
-- Người dùng: `AdRemoteConfig` expose các getter định kiểu mạnh cho mỗi key và `RemoteConfigUtils` sử dụng file để build map mặc định được đẩy vào Firebase Remote Config (để bạn luôn có fallback an toàn khi offline).
+Project `Example-AdLogic-Partner` được xây dựng như **template/base** cho mọi app Android trong hệ sinh thái. Đối tác fork hoặc nhân bản từ base này để đảm bảo:
 
-### Chỉnh sửa File
+- Cùng một cách tổ chức package Ads (`AdRemoteConfig`, `RemoteConfigUtils`, `AdsManager`, `AdExtension`).
+- Cùng cơ chế đọc config từ asset và Firebase Remote Config.
+- Cùng pattern quan sát kết quả load (LiveData) và populate native ad.
+- Cùng entry QA qua DevSetting trên màn Language.
 
-1. Giữ cấu trúc cấp cao nhất là một map trong đó tên mỗi entry là cùng một key được sử dụng trong app (`inter_splash`, `native_language_1`, v.v.).
-2. Đối với mỗi entry, cung cấp:
-   - `id`: placement id của AdMob (hoặc mediated).
-   - `isEnable`: toggle để bật/tắt nhanh cho mỗi placement.
-   - Tùy chọn `reloadIntervalSeconds` cho banner.
-3. Tuân thủ JSON hợp lệ. Adapter Moshi trong `AdRemoteConfig` sẽ lỗi ngay lập tức khi thiếu hoặc sai field.
+Mục tiêu: giảm sai lệch giữa các app, dễ bảo trì, dễ audit và dễ hỗ trợ kỹ thuật tập trung.
 
-Ví dụ:
-```
-{
-  "banner_splash": {
-    "id": "ca-app-pub-xxx/yyy",
-    "isEnable": true,
-    "reloadIntervalSeconds": 30
-  }
+### 2. Logic và flow load/show Ads là chuẩn tối ưu
+
+Luồng hiện tại trong base — khởi tạo sớm tại `GlobalApp`, đồng bộ config tại `Splash`, preload theo màn kế tiếp, gate tập trung trong `AdsManager`, organic qua `ERainAd.shouldDisplay...` — đã được chuẩn hóa sau nhiều vòng tối ưu về **thời điểm load**, **tránh jank UI**, **fallback khi mất mạng/mua hàng**, và **điều kiện hiển thị theo cohort**.
+
+**Đối tác không tự ý thay đổi flow cốt lõi** (ví dụ: gọi trực tiếp SDK bỏ qua `AdsManager`, bỏ gate organic, hoặc load/show không đúng thứ tự màn) trừ khi có phê duyệt kỹ thuật từ Infinity.
+
+### 3. Các màn đã có sẵn Ads — bắt buộc follow đúng implementation
+
+Các màn sau đã được implement đầy đủ; đối tác **phải giữ nguyên** cách gọi load/show, vị trí preload và điều kiện gate tương ứng:
+
+| Màn hình | Placement / hành vi |
+| --- | --- |
+| Splash | `inter_splash`, preload `native_language`, cấu hình `open_resume` |
+| Language | Native language / click, preload onboarding page 1, DevSetting (`tvDone`) |
+| Onboarding | Native page 1 & 4, native full, `inter_onboarding`, widget uninstall |
+| Welcome / Resume | `native_welcome`, `inter_welcome`, rule `ResumeAdsEntryRule` |
+| Banner (Home và màn extend `BaseActivityWithBanner`) | Banner thường / collapsible, reload theo config |
+
+Khi customize UI, chỉ được thay layout/container; **không được bỏ** các điều kiện `isEnable`, purchase, network và `shouldDisplay...` đã gắn sẵn.
+
+### 4. Màn custom của app — follow theo rule load & show
+
+Với màn hình **do app tự thêm** (không có sẵn trong base), đối tác vẫn phải tuân thủ **cùng bộ rule**:
+
+1. Khai báo placement trong `ad_config.json` / `ad_config_debug.json` và property tương ứng trong `AdRemoteConfig`.
+2. Thêm method load trong `AdsManager` (native qua `loadNativeInternal`, inter qua pattern `load` + `show`).
+3. Activity/Fragment: gọi load ở `initViews` (có thể `postDelayed` ngắn), observe LiveData, `populateNativeAdView` khi có ad; ẩn container khi `null`.
+4. Nếu placement thuộc nhóm nhạy cảm (onboarding-like, welcome, widget…): bắt buộc gắn cờ `ERainAd.getInstance().shouldDisplay...` tương ứng hoặc thống nhất với Infinity trước khi ship.
+5. Banner: extend `BaseActivityWithBanner`, cấu hình `BannerConfig`, không tự load banner ngoài `AdsManager.loadBanner`.
+
+Tài liệu UI/Ads chi tiết (kích thước CTA, delay nút Done, vị trí native theo page): [Infinity UI Documentation — Language & Onboarding](https://interim-pink-4gmxxkfh.edgeone.app/).
+
+---
+
+## 1. Khởi tạo Ads và Config
+
+### 1.1 Nguồn config
+- Debug: đọc `ad_config_debug.json`.
+- Release: đọc `ad_config.json`, sau đó có thể override bằng Firebase Remote Config (`ad_remote_config`).
+
+### 1.2 Thời điểm khởi tạo
+- `GlobalApp.onCreate()`:
+  - `AdRemoteConfig.initializeFromAssets(this)`.
+  - `ERainAd.getInstance().init(...)`.
+- `SplashActivity.checkRemoteConfigResult()`:
+  - `AdRemoteConfig.initialize(this, RemoteConfigUtils.getAdRemoteConfig())` để apply config mới nhất từ remote.
+
+### 1.3 Hướng dẫn tích hợp `initAds()` trong `GlobalApp`
+
+Trong base hiện tại, phần tích hợp chính nằm ở `GlobalApp.initAds()`. Đối tác nên giữ nguyên pattern này khi tạo app mới:
+
+1. Chọn `environment` theo build type (`ERainAdConfig.ENVIRONMENT_DEVELOP` / `ERainAdConfig.ENVIRONMENT_PRODUCTION`).
+2. Tạo `mERainAdConfig = ERainAdConfig(this, environment)`.
+3. Set các trường config cần thiết trước khi `ERainAd.init(...)`:
+   - `adjustConfig`
+   - `facebookClientToken`
+   - `adjustTokenTiktok`
+   - `intervalInterstitialAd`
+   - `idAdResume`
+4. Gọi `ERainAd.getInstance().init(this, mERainAdConfig)`.
+5. Set các rule bổ sung cho resume/inter:
+   - `Admob.getInstance().setDisableAdResumeWhenClickAds(true)`
+   - `Admob.getInstance().setOpenActivityAfterShowInterAds(true)`
+   - `AppOpenManager.getInstance().disableAppResumeWithActivity(...)` cho các màn cần loại trừ.
+
+Snippet tham chiếu:
+```kotlin
+private fun initAds() {
+    val environment =
+        if (BuildConfig.DEBUG) ERainAdConfig.ENVIRONMENT_DEVELOP else ERainAdConfig.ENVIRONMENT_PRODUCTION
+    mERainAdConfig = ERainAdConfig(this, environment)
+
+    mERainAdConfig.adjustConfig = AdjustConfig(true, resources.getString(R.string.adjust_token))
+    mERainAdConfig.facebookClientToken = resources.getString(R.string.facebook_client_token)
+    mERainAdConfig.adjustTokenTiktok = resources.getString(R.string.event_token)
+    mERainAdConfig.intervalInterstitialAd = 35
+    mERainAdConfig.idAdResume = ""
+
+    ERainAd.getInstance().init(this, mERainAdConfig)
 }
 ```
 
-### Khởi tạo và Làm mới
+> Lưu ý: `initAdRemoteConfig()` vẫn cần gọi trước `initAds()`, và config remote vẫn được đồng bộ lại ở `SplashActivity` qua `RemoteConfigUtils.init(...)` + `AdRemoteConfig.initialize(...)`.
 
-- Module quảng cáo tự khởi động bằng cách chạy `AdRemoteConfig.initialize(context)` rất sớm (thường bên trong `GlobalApp`).
-- Khi `BuildConfig.DEBUG` là true, trình khởi tạo luôn đọc `ad_config_debug.json`. Không cần gọi remote.
-- `RemoteConfigUtils.init(context, listener)` load cùng các giá trị mặc định vào Firebase Remote Config và sau đó fetch các override trực tiếp khi có sẵn.
-- Nếu bạn thay đổi file JSON khi app đang chạy, hãy gọi `AdRemoteConfig.reset()` theo sau là `AdRemoteConfig.initializeFromAssets(context)` để reload nó mà không cần khởi động lại process.
+### 1.4 Entry mở DevSetting để QA ads
+- `LanguageActivity`: `mBinding.tvDone.setOnAdminAdToggleListener()`.
+- Tại đây QA có thể check: version sdk ads, mediation, config id, ad id, reset organic.
 
-### Lấy Overrides từ Remote
+> **Bắt buộc cấu hình trong `app/build.gradle`:** để DevConfig UI hiển thị đúng thông tin version, đối tác phải khai báo đủ 3 dòng `buildConfigField` bên dưới (ở cả `debug` và `release`):
+>
+> ```gradle
+> buildConfigField "String", "ERAIN_STUDIO_VERSION", "\"$erain_studio_version\""
+> buildConfigField "String", "PLAY_SERVICES_ADS_VERSION", "\"$play_services_ads_version\""
+> buildConfigField "String", "GDPR_MODULE_VERSION", "\"$module_update_gdpr_version\""
+> ```
 
-- Thêm một chuỗi JSON có tên `ad_remote_config` trong Firebase Remote Config phản ánh cùng cấu trúc. Phương thức tiện ích `RemoteConfigUtils.getAdRemoteConfig()` trả về chuỗi thô khi `fetchAndActivate()` hoàn tất.
-- Để áp dụng remote overrides tại runtime:
-  1. Gọi `RemoteConfigUtils.getAdRemoteConfig()`.
-  2. Khi chuỗi không trống, gọi `AdRemoteConfig.initializeFromJson(jsonString)`.
-  3. Tất cả các caller sử dụng `AdRemoteConfig.getInstance()` sẽ bắt đầu phục vụ các placement mới ngay lập tức.
+## 2. Cơ chế load/show Ads theo vị trí
 
-### Khắc phục sự cố
+### 2.1 Splash
+- Inter Splash:
+  - Điều kiện: `AdRemoteConfig.inter_splash.isEnable == true` và có mạng.
+  - API: `ERainAd.getInstance().loadSplashInterstitialAds(...)`.
+  - Sau khi load thành công (`onAdLoaded`) thì preload `native_language`.
+- Open Resume:
+  - Bật/tắt theo `ResumeAdsEntryRule.shouldEnableOpenResume()`.
 
-- Nếu một key bị thiếu, `AdRemoteConfig` sẽ log cảnh báo với Timber và trả về một placeholder bị disable để UI có thể bỏ qua việc render slot quảng cáo một cách nhẹ nhàng.
-- Đảm bảo mỗi key placement mới có một property tương ứng trong `AdRemoteConfig` để giữ an toàn compile-time.
+### 2.2 Language
+- Native language:
+  - preload từ Splash: `AdsManager.loadNativeLanguage(...)`.
+  - native click variant: `AdsManager.loadNativeLanguageClick(...)`.
+- Native page onboarding 1 được load sớm:
+  - `AdsManager.loadNativeOnboarding1(...)`.
 
-## Layout Quảng cáo Ngôn ngữ (`ad_language_layout.json`)
+### 2.3 Onboarding
+- `AdsManager.loadNativeOnboarding4(...)`.
+- `AdsManager.loadNativeOnboardingFull(...)`.
+- `AdsManager.loadInterOnboarding(...)` và show bằng `AdsManager.showInterOnboarding(...)` khi kết thúc onboarding.
 
-- Vị trí: `app/src/main/assets/ad_language_layout.json`.
-- Mục đích: định nghĩa typography, padding, và màu sắc cho layout quảng cáo native được sử dụng trên luồng language/onboarding.
-- Luồng fallback: `RemoteConfigUtils.getAdLanguageLayout()` load asset này trước và chỉ thay thế nó bằng giá trị Remote Config (`ad_language_layout`) khi tồn tại payload không trống.
+### 2.4 Welcome / Resume
+- Native welcome:
+  - `AdsManager.loadNativeWelcome(...)`, gate thêm `shouldDisplayNativeWelcomeBack`.
+- Inter welcome:
+  - `AdsManager.loadInterWelcome(...)`, `AdsManager.showInterWelcome(...)`.
+  - Flow welcome được kích hoạt bởi `AppLifecycleObserver` nếu `ResumeAdsEntryRule.shouldShowWelcomeOnResume()` và `shouldDisplayInterWelcomeBack` cho phép.
 
-### Tùy chỉnh Cục bộ
+### 2.5 Banner (normal / collapsible)
+- Dùng `BaseActivityWithBanner`.
+- `AdsManager.loadBanner(..., isCollapse = false)` => banner thường.
+- `AdsManager.loadBanner(..., isCollapse = true)` => collapsible banner (expand/collapse theo SDK).
+- Reload theo `reloadIntervalSeconds`.
 
-1. Chỉnh sửa file JSON trong assets để điều chỉnh kích thước, màu sắc, hoặc các key giãn cách như `headlineTextSize`, `contentPadding`, hoặc `callToActionBackgroundColor`.
-2. Hot reload bằng cách gọi `AdRemoteConfig.reset()` + `AdRemoteConfig.initializeFromAssets(context)` hoặc đơn giản là cài lại bản debug.
+## 3. Điều kiện chung để Ads được load
 
-### Override từ Remote Config
+Trong `AdsManager`, một ad chỉ load khi thỏa đủ:
+- `adUnitConfig.isEnable == true`.
+- `!AppPurchase.getInstance().isPurchased(...)`.
+- Có mạng.
+- Nếu có organic gate thì `shouldDisplay... == true`.
 
-1. Tạo một tham số Remote Config có tên `ad_language_layout` với cùng cấu trúc JSON.
-2. Sau khi `RemoteConfigUtils.fetchAndActivate()` hoàn tất, chuỗi JSON mới tự động override asset khi `RemoteConfigUtils.getAdLanguageLayout()` được gọi.
-3. Giữ schema giống hệt để tránh crash ở tầng view.
+Nếu fail 1 điều kiện, native LiveData trả `null` để UI ẩn ad container.
 
-## Quy tắc Hiển thị Quảng cáo Onboarding
+## 4. Biến `shouldDisplay*` (Ads / Organic)
+- `shouldDisplayNativeOnboardingNormal1`
+  - Dùng ở `AdsManager.loadNativeOnboarding1(...)`.
+- `shouldDisplayNativeOnboardingNormal2`
+  - Dùng ở `AdsManager.loadNativeOnboarding4(...)`.
+- `shouldDisplayNativeOnboardingFull1`
+  - Dùng ở `AdsManager.loadNativeOnboardingFull(...)`.
+  - Dùng thêm ở `OnBoardingActivity.initOnboardingItems()` để quyết định chèn page native full.
+- `shouldDisplayInterOnboarding`
+  - Dùng ở cả `loadInterOnboarding(...)` và `showInterOnboarding(...)`.
+- `shouldDisplayNativeWelcomeBack`
+  - Dùng ở `loadNativeWelcome(...)`.
+- `shouldDisplayInterWelcomeBack`
+  - Dùng ở `AppLifecycleObserver` (gate mở welcome flow).
+  - Có điều kiện trong `loadInterWelcome(...)`.
+- `shouldDisplayWidgetUninstall`
+  - Dùng ở `OnBoardingActivity.applyUninstallWidgetShortcutsFromRemoteConfig()` để bật/tắt uninstall widget.
 
-Luồng onboarding chỉ render các placement quảng cáo tác động cao khi cả Firebase Remote Config và các method gating phía SDK đồng ý rằng slot nên hiển thị. Sử dụng snippet bên dưới để tham khảo:
+## 5. Cơ chế Organic
 
-```
-if (ERainAd.getInstance().shouldDisplayNativeOnboardingFull1) {
-    AdsManager.loadNativeOnboardingFull(
-        this,
-        appSharedPref.firstOnBoarding,
-        R.layout.layout_native_onboarding_full
+Organic ở đây là cơ chế phân loại user từ Ads SDK/logic tăng trưởng để:
+- Giảm tần suất hoặc tắt một số ad slot nhạy cảm cho một nhóm user.
+- Tối ưu cân bằng giữa retention, UX và revenue.
+- Cho phép A/B rule theo cohort mà không cần sửa từng màn hình.
+
+Cách hoạt động trong app:
+- App không tự tính organic bằng local rule; app đọc kết quả từ các cờ `ERainAd.getInstance().shouldDisplay...`.
+- Khi organic/cohort rule đổi, các cờ này đổi theo và ảnh hưởng trực tiếp việc load/show ở từng slot.
+- `reset organic` trong DevSetting giúp QA đưa user về trạng thái test sạch để verify lại toàn bộ vị trí ads + widget uninstall.
+
+## 6. Ví dụ load/show (tham khảo)
+
+### 6.1 Inter Splash
+```kotlin
+if (AdRemoteConfig.inter_splash.isEnable && isNetwork(this)) {
+    ERainAd.getInstance().loadSplashInterstitialAds(
+        this, AdRemoteConfig.inter_splash.id, 30000, 5000, object : AdCallback() {
+            override fun onNextAction() { moveActivity() }
+        }
     )
-}
+} else moveActivity()
 ```
 
-- `native_onboarding_full_1`: yêu cầu `AdRemoteConfig.native_onboarding_fullscreen_1_3.isEnable == true` và `ERainAd.getInstance().shouldDisplayNativeOnboardingFull1 == true`. Loại bỏ bất kỳ kiểm tra cờ `organic` cũ nào.
-- `native_onboarding_full_2`: yêu cầu `AdRemoteConfig.native_onboarding_fullscreen_2_3.isEnable == true` và `ERainAd.getInstance().shouldDisplayNativeOnboardingFull2 == true`. Loại bỏ `organic`.
-- `inter_onboarding`: yêu cầu `AdRemoteConfig.inter_onboarding.isEnable == true` (hoặc key tương đương được định nghĩa bởi config của bạn) và `ERainAd.getInstance().shouldDisplayInterOnboarding() == true`. Loại bỏ `organic`.
-- Build gỡ cài đặt widget: không hiện widget khi `ERainAd.getInstance().shouldDisplayWidgetUninstall() == false`, bất kể cấu hình remote. Thay thế bất kỳ bộ lọc `organic` cũ nào bằng điều kiện này.
-
-## Shared Preferences (`appSharedPref`)
-
-`appSharedPref` là dependency duy nhất được inject vào mỗi `BaseActivity` và `BaseDialog` để cung cấp trạng thái màn hình. Nó được hỗ trợ bởi `AppSharedPreferencesApp`, bao bọc Android `SharedPreferences` với các property định kiểu mạnh.
-
-### Các Cờ đã Lưu
-
-- `languageCode`: ngôn ngữ được chọn cuối cùng, mặc định là `en`.
-- `firstLanguage`: true cho đến khi người dùng hoàn thành chọn ngôn ngữ.
-- `firstOnBoarding`: true cho đến khi onboarding hoàn tất.
-- `isConfirmConsent`: đánh dấu rằng sự đồng ý GDPR đã được thu thập.
-- `isUserGlobal`: cho biết người dùng đang ở khu vực yêu cầu GDPR.
-
-### Cách dùng Điển hình
-
-- Các Activity gọi `appSharedPref` trong các quyết định điều hướng. Ví dụ, `SplashActivity` mở dialog đồng ý chỉ khi `isConfirmConsent` là false và `isUserGlobal` là true.
-- `LanguageActivity` cập nhật `languageCode` và lật `firstOnBoarding` để kiểm soát xem onboarding có xuất hiện lại hay không.
-
-Ví dụ mẫu truy cập:
-```
-appSharedPref.firstOnBoarding = false
-appSharedPref.languageCode = isoCode
-if (appSharedPref.isConfirmConsent.not()) {
-    showConsentDialog()
-}
-```
-
-### Best Practices
-
-- Tránh đọc `SharedPreferences` trực tiếp. Inject `AppSharedPref` thay vào đó để các instrumentation test có thể thay thế nó bằng một fake trong bộ nhớ.
-- Giữ các key mới bên trong `AppSharedPreferencesApp` để đảm bảo một nguồn sự thật (source of truth) duy nhất và giá trị mặc định.
-- Khi bạn thêm một cờ boolean mới, luôn chọn tên bắt đầu bằng `is`, `has`, hoặc `can` để giữ code tự giải thích.
-
-Với hai phần này (cấu hình quảng cáo debug + shared preferences) đã được hiểu, bạn có thể iterate an toàn trên các placement quảng cáo và luồng onboarding mà không gặp phải regression bất ngờ.
-
-### Làm mới `ad_config.json` Production
-
-- Các bản release đọc `app/src/main/assets/ad_config.json` theo mặc định.
-- Để ship một hotfix mà không cần gửi lại lên store, upload cùng JSON dưới key Remote Config `ad_remote_config`. Sau khi `fetchAndActivate()`, gọi:
-
+### 6.2 Native (qua AdsManager)
 ```kotlin
-RemoteConfigUtils.getAdRemoteConfig()
-    .takeIf { it.isNotBlank() }
-    ?.let(AdRemoteConfig::initializeFromJson)
+AdsManager.loadNativeOnboarding1(this, appSharedPref.firstOnBoarding, R.layout.layout_native_onboarding)
+AdsManager.nativeOnboarding1AdLive.observe(this) { ad ->
+    if (ad == null) hideAd() else showAd(ad)
+}
 ```
 
-Việc này rehydrate `AdRemoteConfig` tại runtime với các placement mới.
-
-## Tổng quan Package Ads (`app/src/main/java/com/itg/template/ads`)
-
-| File | Trách nhiệm |
-| --- | --- |
-| `AdRemoteConfig.kt` | Load các asset JSON/Remote Config payload và expose các getter định kiểu cho mỗi placement. |
-| `AdRemoteConfigExtensions.kt` | Extension val tiện lợi cho các key định kiểu mạnh như `inter_splash`, `native_language_1`, `native_welcome`, v.v. |
-| `RemoteConfigUtils.kt` | Bootstraps Firebase Remote Config, đẩy các mặc định cục bộ, expose các getter hỗ trợ (`getAdRemoteConfig()`, `getForceUpdateConfig()`). |
-| `AdsManager.kt` | Loader tập trung cho tất cả quảng cáo. Mỗi native ad slot expose một `MutableLiveData<ApNativeAd?>` để Activity/Fragment observe. Interstitial được load/show qua các method riêng. Theo dõi điều kiện mạng và trạng thái mua hàng. |
-| `AdExtension.kt` | Top-level function `populateNativeAdView()` tự động lấy `heightCTA`/`colorCTA` từ `AdsManager.getAdConfig(ad)`. ERainAd extension function giữ nguyên để backward-compat. |
-
-### Pattern Native Ad: LiveData
-
-Kể từ khi migrate sang template mới, **tất cả native ads đều được expose qua `MutableLiveData`** thay vì cache biến + callback interface cũ.
-
-**Cách load và quan sát native ad trong Activity:**
-
+### 6.3 Inter (Onboarding)
 ```kotlin
-// 1. Gọi load trong initViews() (có thể delay 100ms để tránh jank)
-mBinding.root.postDelayed({
-    AdsManager.loadNativeWelcome(this, R.layout.layout_native_welcome)
-}, 100L)
-
-// 2. Observe LiveData trong observerData()
-AdsManager.nativeWelcomeAdLive.observe(this) { ad ->
-    if (ad == null) {
-        mBinding.frAds.goneView()
-    } else {
-        mBinding.frAds.visibleView()
-        populateNativeAdView(this, ad, mBinding.frAds, mBinding.shimmerAds.shimmerNativeLarge)
-    }
+AdsManager.loadInterOnboarding(this)
+AdsManager.showInterOnboarding(this) {
+    goNextScreen()
 }
 ```
 
-**Danh sách các LiveData hiện có trong `AdsManager`:**
-
-| LiveData | Ad slot |
-| --- | --- |
-| `nativeLanguageAdLive` | Native ad màn chọn ngôn ngữ |
-| `nativeLanguageClickAdLive` | Native ad sau khi user click chọn ngôn ngữ |
-| `nativeOnboarding1AdLive` | Native ad trang 1 onboarding |
-| `nativeOnboarding4AdLive` | Native ad trang 4 onboarding |
-| `nativeAdOnBoardingFullLive` | Native ad full-screen onboarding trang 3 |
-| `nativeSurveyAdLive` | Native ad màn survey uninstall |
-| `nativeConfirmUninstallAdLive` | Native ad màn confirm uninstall |
-| `nativeWelcomeAdLive` | Native ad màn Welcome (resume flow) |
-
-> **Lưu ý quan trọng:** Khi không có mạng hoặc user đã mua hàng, LiveData emit `null`. Activity/Fragment cần xử lý cả 2 trường hợp (`null` → hide container, non-null → populate).
-
-### Luồng Điển hình
-
-1. `GlobalApp.onCreate()`:
-   - Gọi `AdRemoteConfig.initializeFromAssets(context)` để load config cục bộ.
-   - Khởi tạo `ERainAd` với config môi trường.
-   - Set dialog layouts (`prepareLoadingAdsDialogLayout`, `resumeLoadingDialogLayout`).
-   - Nếu `ResumeAdsEntryRule.shouldShowWelcomeOnResume()`, đăng ký `AppLifecycleObserver` + `AppActivityLifecycleCallbacks`.
-
-2. `SplashActivity`:
-   - Chạy `RemoteConfigUtils.init()` và đợi remote config fetch xong (có timeout).
-   - Gọi `AdRemoteConfig.initialize(context, jsonFromRemote)` để áp dụng config mới nhất.
-   - Load `native_language` ngay lập tức cho màn tiếp theo.
-   - Load và show `inter_splash` nếu được bật.
-   - Bật/tắt open resume dựa trên `ResumeAdsEntryRule.shouldEnableOpenResume()`.
-
-3. **Activity nhận native ad** không bao giờ chạm vào JSON thô. Chúng:
-   - Gọi `AdsManager.loadNative...()` để kích hoạt load.
-   - Observe `AdsManager.<slot>Live` để nhận kết quả bất đồng bộ.
-   - Gọi `populateNativeAdView()` khi LiveData emit non-null.
-
-### Thêm Placement Native Mới
-
-1. Mở rộng `ad_config_debug.json` / `ad_config.json` với key mới (bao gồm `colorCTA`, `heightCTA`, `positionCTA`).
-2. Thêm property vào `AdRemoteConfig.kt` và `AdRemoteConfigExtensions.kt` để caller Kotlin đọc theo cách type-safe.
-3. Thêm `MutableLiveData<ApNativeAd?>` mới vào `AdsManager` (ví dụ: `val nativeHomeAdLive = MutableLiveData<ApNativeAd?>()`).
-4. Thêm method `loadNativeHome(activity, layoutRes)` trong `AdsManager` gọi `loadNativeInternal(...)`.
-5. Trong Activity cần hiển thị: gọi load trong `initViews()`, observe LiveData trong `observerData()`.
-6. Thêm slot vào `clearAll()` trong `AdsManager`.
-7. Cập nhật mặc định Remote Config bằng cách chạy lại app (giá trị được push tự động qua `RemoteConfigUtils`).
-
-### Thêm Placement Interstitial Mới
-
-1. Thêm key vào config JSON.
-2. Thêm property vào `AdRemoteConfig.kt` + extension.
-3. Thêm biến `private var interXxxAd: ApInterstitialAd?` vào `AdsManager`.
-4. Thêm `loadInterXxx(context)` và `showInterXxx(context, onAction: () -> Unit)` theo pattern của `loadInterWelcome`/`showInterWelcome`.
-5. Gọi load sớm (thường ở màn trước đó), gọi show ở điểm navigation cần thiết.
-
-## `BaseActivityWithBanner`
-
-Các Activity cần **banner** extend `BaseActivityWithBanner<VB>` thay vì `BaseActivity<VB>`.
-
+### 6.4 Banner thường (normal)
 ```kotlin
-class MainActivity : BaseActivityWithBanner<ActivityMainBinding>() {
-    override val bannerConfig = BannerConfig(AdRemoteConfig.banner_home, isCollapse = true)
-    // ...
-}
+override val bannerConfig = BannerConfig(
+    adUnitConfig = AdRemoteConfig.banner_home,
+    isCollapse = false
+)
 ```
 
-`BaseActivityWithBanner` tự động:
-- Load banner trong `onCreate()`.
-- Reload banner theo `reloadIntervalSeconds` khi activity resume.
-- Check `AppPurchase.getInstance().isPurchased(this)` trước khi show.
-- Dọn dẹp Handler khi `onPause`/`onDestroy`.
-
-`BaseActivity` (base class) **không còn chứa banner logic**. Chỉ các Activity thực sự cần banner mới extend `BaseActivityWithBanner`.
-
-## Dialog Bắt buộc Cập nhật (`force_update_config.json`)
-
-- Vị trí: `app/src/main/assets/force_update_config.json`.
-- Key Remote: `force_update_config` (string) trong Firebase Remote Config. Asset cục bộ được sử dụng làm giá trị mặc định khi payload remote trống.
-- Data model: [`ForceUpdateConfig`](app/src/main/java/com/itg/template/data/model/ForceUpdateConfig.kt).
-- Người dùng: `RemoteConfigUtils.getForceUpdateConfig()` parse JSON và `MainActivity` hiển thị dialog Auto/Manual Force Update (xem `button_show_force_update`).
-
-### JSON Schema
-
-```json
-{
-  "icon": "https://.../force_icon.png",
-  "title": "Update Required",
-  "description": "New features and fixes are waiting for you.",
-  "storeLink": "https://play.google.com/store/apps/details?id=com.itg.template",
-  "minVersionCode": 123,
-  "force": true
-}
+### 6.5 Banner collapsible (expand/collapse)
+```kotlin
+override val bannerConfig = BannerConfig(
+    adUnitConfig = AdRemoteConfig.banner_home,
+    isCollapse = true
+)
 ```
 
-| Trường | Mô tả |
-| --- | --- |
-| `icon` | URL tùy chọn hiển thị phía trên nội dung. Fallback về icon launcher. |
-| `title` | Tùy chọn. Mặc định là tên app khi trống. |
-| `description` | Tùy chọn. Mặc định là `force_update_message`. |
-| `storeLink` | Deep link Google Play. Bắt buộc cho lời nhắc tự động. |
-| `minVersionCode` | `BuildConfig.VERSION_CODE` tối thiểu yêu cầu trước khi nhắc. |
-| `force` | Khi `true`, dialog không thể bị hủy. |
+## 7. Tài liệu tham chiếu bổ sung
 
-Sau khi `RemoteConfigUtils.init()` hoàn tất, `maybeShowForceUpdateDialog()` so sánh payload remote với `versionCode` đã cài đặt và render `dialog_force_update.xml` thông qua `ForceUpdateDialog`. Nút “Show Force Update” trong `MainActivity` sử dụng lại config đã fetch cuối cùng để QA có thể xem trước dialog ngay lập tức.
-
-## Dialog Hệ thống dựa trên Blur
-
-- `BlurLoadingLayout` (root cho `layout_prepare_ads.xml`, `dialog_no_internet.xml`, `dialog_force_update.xml`) capture window bên dưới và đưa nó vào [BlurView](https://github.com/Dimezis/BlurView) cho một lớp phủ blur giống iOS.
-- `NoInternetDialog` và `ForceUpdateDialog` (nằm trong `ui/component/main/dialog`) là các helper tái sử dụng inflate các layout đó, xử lý callback nút, và expose `show()/dismiss()` cho tầng activity.
-- Các dialog tự động snapshot activity hiện tại, vì vậy ngay cả các overlay bên thứ ba cũng kế thừa background được làm mờ mà không cần thêm code trong activity.
-
-### Xem trước / Kích hoạt Thủ công
-
-- `button_show_force_update` trong `activity_main.xml` kích hoạt `ForceUpdateDialog` sử dụng payload Remote Config đã cache (hoặc fallback cục bộ). Điều này hữu ích trong quá trình QA để review nội dung và thiết kế mà không cần thay đổi Remote Config.
-- Mất mạng được theo dõi qua `ConnectionLiveData`; `NoInternetDialog` xuất hiện tự động bất cứ khi nào observer emit `false`, và bị hủy ngay khi kết nối được khôi phục.
+- [Infinity UI Documentation — Language & Onboarding](https://interim-pink-4gmxxkfh.edgeone.app/) — UI, Remote Config và điều kiện hiển thị từng ad unit (đối chiếu tên method/placement với tài liệu này).

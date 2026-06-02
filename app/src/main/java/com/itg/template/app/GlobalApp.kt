@@ -21,6 +21,7 @@ import com.ads.module.billing.AppPurchase
 import com.ads.module.config.AdjustConfig
 import com.ads.module.config.ERainAdConfig
 import com.google.android.gms.ads.MobileAds
+import com.itg.devconfig.DevConfig
 import com.itg.template.BuildConfig
 import com.itg.template.R
 import com.itg.template.ads.AdRemoteConfig
@@ -47,6 +48,13 @@ class GlobalApp : AdsMultiDexApplication() {
     override fun onCreate() {
         super.onCreate()
         MobileAds.initialize(this) {}
+        DevConfig.init(
+            context = this,
+            nkhStudioVersion = BuildConfig.ERAIN_STUDIO_VERSION,
+            playServicesAdsVersion = BuildConfig.PLAY_SERVICES_ADS_VERSION,
+            gdprModuleVersion = BuildConfig.GDPR_MODULE_VERSION
+        )
+
 
         instance = this
         if (BuildConfig.DEBUG) {
@@ -54,7 +62,6 @@ class GlobalApp : AdsMultiDexApplication() {
         }
         initAdRemoteConfig()
         initAds()
-        initShortCut()
 
         if (ResumeAdsEntryRule.shouldShowWelcomeOnResume()) {
             ProcessLifecycleOwner.get().lifecycle.addObserver(AppLifecycleObserver())
@@ -87,31 +94,7 @@ class GlobalApp : AdsMultiDexApplication() {
         AppOpenManager.getInstance().disableAppResumeWithActivity(LanguageActivity::class.java)
         AppOpenManager.getInstance().disableAppResumeWithActivity(OnBoardingActivity::class.java)
         AppOpenManager.getInstance().disableAppResumeWithActivity(ConfirmUninstallActivity::class.java)
-        // TODO: Check if ERainAd has these properties or if they have different names
-        // ERainAd.getInstance().prepareLoadingAdsDialogLayout  = R.layout.layout_prepare_ads
-        // ERainAd.getInstance().resumeLoadingDialogLayout  = R.layout.layout_welcome_back
-    }
 
-    private fun initShortCut() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
-            val manager = getSystemService(ShortcutManager::class.java)
-            try {
-                manager.removeAllDynamicShortcuts()
-                val uninstallShortCut = ShortcutInfo.Builder(this, "ACTION_OPEN_UNINSTALL")
-                    .setShortLabel(getSystemLocaleString(R.string.txt_uninstall))
-                    .setIcon(Icon.createWithResource(this, R.drawable.ic_uninstall))
-                    .setIntent(Intent(this, ConfirmUninstallActivity::class.java).apply {
-                        flags =
-                            Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                        action = "android.intent.action.SHORTCUT_UNINSTALL_APP"
-                        putExtra(AppConstants.FROM_SHORTCUT, "ACTION_OPEN_UNINSTALL")
-                    })
-                    .setRank(1)
-                    .build()
-                manager.dynamicShortcuts = listOf(uninstallShortCut)
-            } catch (_: Exception) {
-            }
-        }
     }
 
     fun Context.getSystemLocaleString(@StringRes resId: Int): String {

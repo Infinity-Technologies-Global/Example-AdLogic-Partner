@@ -1,5 +1,6 @@
 package com.itg.template.ui.component.onboarding
 
+import android.os.Build
 import androidx.activity.viewModels
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.CompositePageTransformer
@@ -11,9 +12,11 @@ import com.itg.template.ads.AdsManager
 import com.itg.template.ads.RemoteConfigUtils
 import com.itg.template.databinding.ActivityOnboardingBinding
 import com.itg.template.ui.bases.BaseActivity
+import com.itg.template.ui.bases.ext.isNetwork
 import com.itg.template.ui.component.onboarding.adapter.OnboardingAdapter
 import com.itg.template.ui.component.onboarding.model.OnboardingItem
 import com.itg.template.ui.component.onboarding.viewmodel.OnboardingViewModel
+import com.itg.template.ui.component.uninstall.ShortcutManager
 import com.itg.template.utils.Routes
 import dagger.hilt.android.AndroidEntryPoint
 import kotlin.math.abs
@@ -32,6 +35,7 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>() {
     override fun initViews() {
         initPage()
         initOnboardingItems()
+        applyUninstallWidgetShortcutsFromRemoteConfig()
 
         mBinding.root.postDelayed({
             AdsManager.loadNativeOnboarding4(
@@ -39,17 +43,22 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>() {
                 appSharedPref.firstOnBoarding,
                 R.layout.layout_native_onboarding
             )
-            if (ERainAd.getInstance().shouldDisplayNativeOnboardingFull1) {
-                AdsManager.loadNativeOnboardingFull(
-                    this,
-                    appSharedPref.firstOnBoarding,
-                    R.layout.layout_native_onboarding_full
-                )
-            }
-            if (ERainAd.getInstance().shouldDisplayInterOnboarding) {
-                AdsManager.loadInterOnboarding(this)
-            }
+            AdsManager.loadNativeOnboardingFull(
+                this,
+                appSharedPref.firstOnBoarding,
+                R.layout.layout_native_onboarding_full
+            )
+
+            AdsManager.loadInterOnboarding(this)
+
         }, 100L)
+    }
+
+    private fun applyUninstallWidgetShortcutsFromRemoteConfig() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return
+        if (RemoteConfigUtils.getOnEnableUninstallWidget() && ERainAd.getInstance().shouldDisplayWidgetUninstall) {
+            ShortcutManager.initShortCut(this@OnBoardingActivity)
+        }
     }
 
     override fun observerData() {
@@ -112,9 +121,17 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>() {
                 textButton = R.string.next,
                 imageResId = R.mipmap.ic_launcher,
                 positionIndicator = 2,
-                isHasNativeFull = true
             )
         )
+
+        if (isNetwork(this@OnBoardingActivity) && ERainAd.getInstance().shouldDisplayNativeOnboardingFull1)
+            onboardingItems.add(
+                OnboardingItem(
+                    isHasNativeFull = true
+                )
+            )
+
+
         onboardingItems.add(
             OnboardingItem(
                 title = R.string.onboarding_title_4,

@@ -2,6 +2,7 @@ package com.itg.template.ui.component.splash
 
 import android.os.CountDownTimer
 import androidx.core.net.toUri
+import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import com.ads.module.admob.AppOpenManager
@@ -23,6 +24,8 @@ import com.itg.template.ui.bases.ext.isNetwork
 import com.itg.template.ui.bases.ext.visibleView
 import com.itg.template.utils.Routes
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 
 @AndroidEntryPoint
@@ -35,7 +38,7 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
     private fun shouldShowLanguageNextTime() = showLanguageNextTime
 
     private val uriVideo = "asset:///video_splash.mp4".toUri()
-    private val isHasVideo = true
+    private val isHasVideo = false
 
     override fun getLayoutActivity() = R.layout.activity_splash
 
@@ -97,7 +100,6 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
 
     private fun checkRemoteConfigResult() {
         AdRemoteConfig.initialize(this, RemoteConfigUtils.getAdRemoteConfig())
-        loadNativeLanguage(this, appSharedPref.firstLanguage, R.layout.layout_native_language)
 
         if (AdRemoteConfig.inter_splash.isEnable && isNetwork(this@SplashActivity)) {
             ERainAd.getInstance().loadSplashInterstitialAds(
@@ -109,6 +111,15 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
                     override fun onNextAction() {
                         super.onNextAction()
                         moveActivity()
+                    }
+
+                    override fun onAdLoaded() {
+                        super.onAdLoaded()
+
+                        lifecycleScope.launch(Dispatchers.Main){
+                            loadNativeLanguage(this@SplashActivity, appSharedPref.firstLanguage, R.layout.layout_native_language)
+                        }
+
                     }
                 })
         } else {
