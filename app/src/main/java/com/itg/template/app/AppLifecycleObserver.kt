@@ -29,7 +29,7 @@ class AppLifecycleObserver : DefaultLifecycleObserver {
                 clazz.isInstance(currentActivity)
             }
             if (!isDisable && ResumeAdsEntryRule.shouldShowWelcomeOnResume()
-                && !AppOpenManager.getInstance().isShowingAd
+                && !AppOpenManager.getInstance().isInterstitialShowing
                 && !AppPurchase.getInstance().isPurchased(currentActivity.applicationContext)
                 && ERainAd.getInstance().shouldDisplayInterWelcomeBack
             ) {
