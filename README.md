@@ -37,7 +37,7 @@ The following screens are already implemented and must preserve load/show behavi
 | Screen | Placements / behavior |
 | --- | --- |
 | Splash | `inter_splash`, preload `native_language`, `open_resume` config |
-| Language | Native language/click, preload onboarding page 1, DevSetting (`tvDone`) |
+| Language | Native language/click, preload onboarding page 1, DevSetting (`tvTitle`) |
 | Onboarding | Native page 1 & 4, native full, `inter_onboarding`, uninstall widget |
 | Welcome / Resume | `native_welcome`, `inter_welcome`, `ResumeAdsEntryRule` |
 | Banner (Home + screens extending `BaseActivityWithBanner`) | Normal / collapsible banner, reload by config |
@@ -110,7 +110,7 @@ private fun initAds() {
 > Note: `initAdRemoteConfig()` should still run before `initAds()`, and remote config is still synced in `SplashActivity` via `RemoteConfigUtils.init(...)` + `AdRemoteConfig.initialize(...)`.
 
 ### 1.4 DevSetting entry for Ads QA
-- `LanguageActivity`: `mBinding.tvDone.setOnAdminAdToggleListener()`
+- `LanguageActivity`: `mBinding.tvTitle.setOnAdminAdToggleListener()`
 - QA can check: sdk versions, mediation, config id, ad id, reset organic.
 
 > **Mandatory in `app/build.gradle`:** to make DevConfig UI show version info correctly, partners must declare all 3 `buildConfigField` lines below (in both `debug` and `release`):

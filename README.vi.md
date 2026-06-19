@@ -32,7 +32,7 @@ Các màn sau đã được implement đầy đủ; đối tác **phải giữ n
 | Màn hình | Placement / hành vi |
 | --- | --- |
 | Splash | `inter_splash`, preload `native_language`, cấu hình `open_resume` |
-| Language | Native language / click, preload onboarding page 1, DevSetting (`tvDone`) |
+| Language | Native language / click, preload onboarding page 1, DevSetting (`tvTitle`) |
 | Onboarding | Native page 1 & 4, native full, `inter_onboarding`, widget uninstall |
 | Welcome / Resume | `native_welcome`, `inter_welcome`, rule `ResumeAdsEntryRule` |
 | Banner (Home và màn extend `BaseActivityWithBanner`) | Banner thường / collapsible, reload theo config |
@@ -104,7 +104,7 @@ private fun initAds() {
 > Lưu ý: `initAdRemoteConfig()` vẫn cần gọi trước `initAds()`, và config remote vẫn được đồng bộ lại ở `SplashActivity` qua `RemoteConfigUtils.init(...)` + `AdRemoteConfig.initialize(...)`.
 
 ### 1.4 Entry mở DevSetting để QA ads
-- `LanguageActivity`: `mBinding.tvDone.setOnAdminAdToggleListener()`.
+- `LanguageActivity`: `mBinding.tvTitle.setOnAdminAdToggleListener()`.
 - Tại đây QA có thể check: version sdk ads, mediation, config id, ad id, reset organic.
 
 > **Bắt buộc cấu hình trong `app/build.gradle`:** để DevConfig UI hiển thị đúng thông tin version, đối tác phải khai báo đủ 3 dòng `buildConfigField` bên dưới (ở cả `debug` và `release`):

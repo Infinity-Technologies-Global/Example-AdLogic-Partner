@@ -37,7 +37,7 @@
 | Screen | Placements / behavior |
 | --- | --- |
 | Splash | `inter_splash`, preload `native_language`, `open_resume` config |
-| Language | Native language/click, preload onboarding page 1, DevSetting (`tvDone`) |
+| Language | Native language/click, preload onboarding page 1, DevSetting (`tvTitle`) |
 | Onboarding | Native page 1 & 4, native full, `inter_onboarding`, uninstall widget |
 | Welcome / Resume | `native_welcome`, `inter_welcome`, `ResumeAdsEntryRule` |
 | Banner (Home + screens extending `BaseActivityWithBanner`) | Normal / collapsible banner, reload by config |
@@ -110,7 +110,7 @@ private fun initAds() {
 > Note: `initAdRemoteConfig()` को `initAds()` से पहले call करना चाहिए, और remote config sync फिर भी `SplashActivity` में `RemoteConfigUtils.init(...)` + `AdRemoteConfig.initialize(...)` से होता है।
 
 ### 1.4 Ads QA के लिए DevSetting entry
-- `LanguageActivity`: `mBinding.tvDone.setOnAdminAdToggleListener()`
+- `LanguageActivity`: `mBinding.tvTitle.setOnAdminAdToggleListener()`
 - QA यहां check कर सकता है: sdk versions, mediation, config id, ad id, reset organic।
 
 > **`app/build.gradle` में mandatory:** DevConfig UI में version info सही दिखाने के लिए नीचे दिए गए 3 `buildConfigField` lines (दोनों `debug` और `release` में) घोषित करना अनिवार्य है:
