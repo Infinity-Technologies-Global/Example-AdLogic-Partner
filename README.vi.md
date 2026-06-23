@@ -60,13 +60,54 @@ Tài liệu UI/Ads chi tiết (kích thước CTA, delay nút Done, vị trí na
 - Release: đọc `ad_config.json`, sau đó có thể override bằng Firebase Remote Config (`ad_remote_config`).
 
 ### 1.2 Thời điểm khởi tạo
-- `GlobalApp.onCreate()`:
-  - `AdRemoteConfig.initializeFromAssets(this)`.
-  - `ERainAd.getInstance().init(...)`.
+
+Thứ tự trong `GlobalApp.onCreate()` (bắt buộc follow):
+
+| Bước | Gọi tại | Mục đích |
+|:---:|---------|----------|
+| 1 | `MobileAds.initialize(this)` | Khởi tạo Google Mobile Ads SDK |
+| 2 | `DevConfig.init(...)` | DevConfig UI — version libs ads (xem mục 1.3) |
+| 3 | `initAdRemoteConfig()` | `AdRemoteConfig.initializeFromAssets(this)` |
+| 4 | `initAds()` | `ERainAd` + rule resume/inter (xem mục 1.5) |
+| 5 | `ResumeAdsEntryRule.shouldShowWelcomeOnResume()` | Đăng ký `AppLifecycleObserver` nếu cần welcome flow |
+
 - `SplashActivity.checkRemoteConfigResult()`:
   - `AdRemoteConfig.initialize(this, RemoteConfigUtils.getAdRemoteConfig())` để apply config mới nhất từ remote.
 
-### 1.3 Hướng dẫn tích hợp `initAds()` trong `GlobalApp`
+### 1.3 Tích hợp `DevConfig.init()` trong `GlobalApp`
+
+Gọi **sớm** trong `onCreate()`, trước `initAdRemoteConfig()` và `initAds()`. Ba tham số version lấy từ `BuildConfig` (phải khai báo trong `app/build.gradle` — xem mục 1.4):
+
+```kotlin
+DevConfig.init(
+    context = this,
+    nkhStudioVersion = BuildConfig.ERAIN_STUDIO_VERSION,
+    playServicesAdsVersion = BuildConfig.PLAY_SERVICES_ADS_VERSION,
+    gdprModuleVersion = BuildConfig.GDPR_MODULE_VERSION
+)
+```
+
+| Tham số | Nguồn `BuildConfig` | Hiển thị trên DevConfig UI |
+|---------|---------------------|----------------------------|
+| `nkhStudioVersion` | `ERAIN_STUDIO_VERSION` | ERain Studio / ads module version |
+| `playServicesAdsVersion` | `PLAY_SERVICES_ADS_VERSION` | Google Play Services Ads version |
+| `gdprModuleVersion` | `GDPR_MODULE_VERSION` | GDPR module version |
+
+### 1.4 Entry mở DevSetting để QA ads
+- `LanguageActivity`: `mBinding.tvTitle.setOnAdminAdToggleListener()`.
+- Tại đây QA có thể check: version sdk ads, mediation, config id, ad id, reset organic.
+
+> **Bắt buộc cấu hình trong `app/build.gradle`:** để DevConfig UI hiển thị đúng thông tin version, đối tác phải khai báo đủ 3 dòng `buildConfigField` bên dưới (ở cả `debug` và `release`):
+>
+> ```gradle
+> buildConfigField "String", "ERAIN_STUDIO_VERSION", "\"$erain_studio_version\""
+> buildConfigField "String", "PLAY_SERVICES_ADS_VERSION", "\"$play_services_ads_version\""
+> buildConfigField "String", "GDPR_MODULE_VERSION", "\"$module_update_gdpr_version\""
+> ```
+
+**Hướng dẫn test DevConfig (PO / Tester):** [DevConfig Testing Guide](https://share.jotbird.com/breezy-soaring-high-desert)
+
+### 1.5 Hướng dẫn tích hợp `initAds()` trong `GlobalApp`
 
 Trong base hiện tại, phần tích hợp chính nằm ở `GlobalApp.initAds()`. Đối tác nên giữ nguyên pattern này khi tạo app mới:
 
@@ -102,18 +143,6 @@ private fun initAds() {
 ```
 
 > Lưu ý: `initAdRemoteConfig()` vẫn cần gọi trước `initAds()`, và config remote vẫn được đồng bộ lại ở `SplashActivity` qua `RemoteConfigUtils.init(...)` + `AdRemoteConfig.initialize(...)`.
-
-### 1.4 Entry mở DevSetting để QA ads
-- `LanguageActivity`: `mBinding.tvTitle.setOnAdminAdToggleListener()`.
-- Tại đây QA có thể check: version sdk ads, mediation, config id, ad id, reset organic.
-
-> **Bắt buộc cấu hình trong `app/build.gradle`:** để DevConfig UI hiển thị đúng thông tin version, đối tác phải khai báo đủ 3 dòng `buildConfigField` bên dưới (ở cả `debug` và `release`):
->
-> ```gradle
-> buildConfigField "String", "ERAIN_STUDIO_VERSION", "\"$erain_studio_version\""
-> buildConfigField "String", "PLAY_SERVICES_ADS_VERSION", "\"$play_services_ads_version\""
-> buildConfigField "String", "GDPR_MODULE_VERSION", "\"$module_update_gdpr_version\""
-> ```
 
 ## 2. Cơ chế load/show Ads theo vị trí
 

@@ -66,13 +66,54 @@ Detailed UI/Ads reference (CTA size, Done button delay, native placement by page
 - Release: read `ad_config.json`, then optionally override from Firebase Remote Config (`ad_remote_config`).
 
 ### 1.2 Initialization points
-- `GlobalApp.onCreate()`:
-  - `AdRemoteConfig.initializeFromAssets(this)`
-  - `ERainAd.getInstance().init(...)`
+
+Order in `GlobalApp.onCreate()` (mandatory):
+
+| Step | Call | Purpose |
+|:---:|------|---------|
+| 1 | `MobileAds.initialize(this)` | Initialize Google Mobile Ads SDK |
+| 2 | `DevConfig.init(...)` | DevConfig UI — ads lib versions (see §1.3) |
+| 3 | `initAdRemoteConfig()` | `AdRemoteConfig.initializeFromAssets(this)` |
+| 4 | `initAds()` | `ERainAd` + resume/inter rules (see §1.5) |
+| 5 | `ResumeAdsEntryRule.shouldShowWelcomeOnResume()` | Register `AppLifecycleObserver` when welcome flow applies |
+
 - `SplashActivity.checkRemoteConfigResult()`:
   - `AdRemoteConfig.initialize(this, RemoteConfigUtils.getAdRemoteConfig())` to apply latest remote config.
 
-### 1.3 `initAds()` integration in `GlobalApp` (recommended standard)
+### 1.3 `DevConfig.init()` integration in `GlobalApp`
+
+Call **early** in `onCreate()`, before `initAdRemoteConfig()` and `initAds()`. Version parameters come from `BuildConfig` (must be declared in `app/build.gradle` — see §1.4):
+
+```kotlin
+DevConfig.init(
+    context = this,
+    nkhStudioVersion = BuildConfig.ERAIN_STUDIO_VERSION,
+    playServicesAdsVersion = BuildConfig.PLAY_SERVICES_ADS_VERSION,
+    gdprModuleVersion = BuildConfig.GDPR_MODULE_VERSION
+)
+```
+
+| Parameter | `BuildConfig` field | Shown on DevConfig UI |
+|-----------|---------------------|------------------------|
+| `nkhStudioVersion` | `ERAIN_STUDIO_VERSION` | ERain Studio / ads module version |
+| `playServicesAdsVersion` | `PLAY_SERVICES_ADS_VERSION` | Google Play Services Ads version |
+| `gdprModuleVersion` | `GDPR_MODULE_VERSION` | GDPR module version |
+
+### 1.4 DevSetting entry for Ads QA
+- `LanguageActivity`: `mBinding.tvTitle.setOnAdminAdToggleListener()`
+- QA can check: sdk versions, mediation, config id, ad id, reset organic.
+
+> **Mandatory in `app/build.gradle`:** to make DevConfig UI show version info correctly, partners must declare all 3 `buildConfigField` lines below (in both `debug` and `release`):
+>
+> ```gradle
+> buildConfigField "String", "ERAIN_STUDIO_VERSION", "\"$erain_studio_version\""
+> buildConfigField "String", "PLAY_SERVICES_ADS_VERSION", "\"$play_services_ads_version\""
+> buildConfigField "String", "GDPR_MODULE_VERSION", "\"$module_update_gdpr_version\""
+> ```
+
+**DevConfig testing guide (PO / Tester):** [DevConfig Testing Guide](https://share.jotbird.com/breezy-soaring-high-desert)
+
+### 1.5 `initAds()` integration in `GlobalApp` (recommended standard)
 
 In the current base, the core integration is implemented in `GlobalApp.initAds()`. Partners should keep this pattern when creating new apps:
 
@@ -108,18 +149,6 @@ private fun initAds() {
 ```
 
 > Note: `initAdRemoteConfig()` should still run before `initAds()`, and remote config is still synced in `SplashActivity` via `RemoteConfigUtils.init(...)` + `AdRemoteConfig.initialize(...)`.
-
-### 1.4 DevSetting entry for Ads QA
-- `LanguageActivity`: `mBinding.tvTitle.setOnAdminAdToggleListener()`
-- QA can check: sdk versions, mediation, config id, ad id, reset organic.
-
-> **Mandatory in `app/build.gradle`:** to make DevConfig UI show version info correctly, partners must declare all 3 `buildConfigField` lines below (in both `debug` and `release`):
->
-> ```gradle
-> buildConfigField "String", "ERAIN_STUDIO_VERSION", "\"$erain_studio_version\""
-> buildConfigField "String", "PLAY_SERVICES_ADS_VERSION", "\"$play_services_ads_version\""
-> buildConfigField "String", "GDPR_MODULE_VERSION", "\"$module_update_gdpr_version\""
-> ```
 
 ## 2. Load/Show Ads by placement
 

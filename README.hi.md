@@ -66,13 +66,54 @@ Detailed UI/Ads reference (CTA size, Done button delay, native placement by page
 - Release: `ad_config.json` read करें, फिर optional override Firebase Remote Config (`ad_remote_config`) से लें।
 
 ### 1.2 Initialization points
-- `GlobalApp.onCreate()`:
-  - `AdRemoteConfig.initializeFromAssets(this)`
-  - `ERainAd.getInstance().init(...)`
-- `SplashActivity.checkRemoteConfigResult()`:
-  - latest remote config apply करने के लिए `AdRemoteConfig.initialize(this, RemoteConfigUtils.getAdRemoteConfig())`
 
-### 1.3 `GlobalApp` में `initAds()` integration (recommended standard)
+`GlobalApp.onCreate()` में order (mandatory):
+
+| Step | Call | Purpose |
+|:---:|------|---------|
+| 1 | `MobileAds.initialize(this)` | Google Mobile Ads SDK initialize |
+| 2 | `DevConfig.init(...)` | DevConfig UI — ads lib versions (§1.3 देखें) |
+| 3 | `initAdRemoteConfig()` | `AdRemoteConfig.initializeFromAssets(this)` |
+| 4 | `initAds()` | `ERainAd` + resume/inter rules (§1.5 देखें) |
+| 5 | `ResumeAdsEntryRule.shouldShowWelcomeOnResume()` | welcome flow हो तो `AppLifecycleObserver` register |
+
+- `SplashActivity.checkRemoteConfigResult()`:
+  - latest remote config apply: `AdRemoteConfig.initialize(this, RemoteConfigUtils.getAdRemoteConfig())`
+
+### 1.3 `GlobalApp` में `DevConfig.init()` integration
+
+`onCreate()` में **जल्दी** call करें — `initAdRemoteConfig()` और `initAds()` से पहले। Version parameters `BuildConfig` से आते हैं (`app/build.gradle` में declare अनिवार्य — §1.4):
+
+```kotlin
+DevConfig.init(
+    context = this,
+    nkhStudioVersion = BuildConfig.ERAIN_STUDIO_VERSION,
+    playServicesAdsVersion = BuildConfig.PLAY_SERVICES_ADS_VERSION,
+    gdprModuleVersion = BuildConfig.GDPR_MODULE_VERSION
+)
+```
+
+| Parameter | `BuildConfig` field | DevConfig UI पर |
+|-----------|---------------------|------------------|
+| `nkhStudioVersion` | `ERAIN_STUDIO_VERSION` | ERain Studio / ads module version |
+| `playServicesAdsVersion` | `PLAY_SERVICES_ADS_VERSION` | Google Play Services Ads version |
+| `gdprModuleVersion` | `GDPR_MODULE_VERSION` | GDPR module version |
+
+### 1.4 Ads QA के लिए DevSetting entry
+- `LanguageActivity`: `mBinding.tvTitle.setOnAdminAdToggleListener()`
+- QA यहां check कर सकता है: sdk versions, mediation, config id, ad id, reset organic।
+
+> **`app/build.gradle` में mandatory:** DevConfig UI में version info सही दिखाने के लिए नीचे दिए गए 3 `buildConfigField` lines (दोनों `debug` और `release` में) घोषित करना अनिवार्य है:
+>
+> ```gradle
+> buildConfigField "String", "ERAIN_STUDIO_VERSION", "\"$erain_studio_version\""
+> buildConfigField "String", "PLAY_SERVICES_ADS_VERSION", "\"$play_services_ads_version\""
+> buildConfigField "String", "GDPR_MODULE_VERSION", "\"$module_update_gdpr_version\""
+> ```
+
+**DevConfig testing guide (PO / Tester):** [DevConfig Testing Guide](https://share.jotbird.com/breezy-soaring-high-desert)
+
+### 1.5 `GlobalApp` में `initAds()` integration (recommended standard)
 
 वर्तमान base में core integration `GlobalApp.initAds()` में implement है। नया app बनाते समय partners को यही pattern follow करना चाहिए:
 
@@ -108,18 +149,6 @@ private fun initAds() {
 ```
 
 > Note: `initAdRemoteConfig()` को `initAds()` से पहले call करना चाहिए, और remote config sync फिर भी `SplashActivity` में `RemoteConfigUtils.init(...)` + `AdRemoteConfig.initialize(...)` से होता है।
-
-### 1.4 Ads QA के लिए DevSetting entry
-- `LanguageActivity`: `mBinding.tvTitle.setOnAdminAdToggleListener()`
-- QA यहां check कर सकता है: sdk versions, mediation, config id, ad id, reset organic।
-
-> **`app/build.gradle` में mandatory:** DevConfig UI में version info सही दिखाने के लिए नीचे दिए गए 3 `buildConfigField` lines (दोनों `debug` और `release` में) घोषित करना अनिवार्य है:
->
-> ```gradle
-> buildConfigField "String", "ERAIN_STUDIO_VERSION", "\"$erain_studio_version\""
-> buildConfigField "String", "PLAY_SERVICES_ADS_VERSION", "\"$play_services_ads_version\""
-> buildConfigField "String", "GDPR_MODULE_VERSION", "\"$module_update_gdpr_version\""
-> ```
 
 ## 2. Load/Show Ads by placement
 
