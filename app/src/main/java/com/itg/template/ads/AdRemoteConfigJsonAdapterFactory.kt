@@ -52,6 +52,7 @@ class AdRemoteConfigJsonAdapterFactory : JsonAdapter.Factory {
                 var colorCTA = "default"
                 var heightCTA = 40
                 var positionCTA = "BOTTOM"
+                var components: List<String> = listOf("icon_headline", "body", "media", "cta")
                 reader.beginObject()
                 while (reader.hasNext()) {
                     when (reader.nextName()) {
@@ -61,6 +62,7 @@ class AdRemoteConfigJsonAdapterFactory : JsonAdapter.Factory {
                         "colorCTA" -> colorCTA = safeNextString(reader, "default")
                         "heightCTA" -> heightCTA = readHeightValue(reader)
                         "positionCTA" -> positionCTA = safeNextString(reader, "BOTTOM").uppercase(Locale.US)
+                        "components" -> components = readComponentsList(reader)
                         else -> reader.skipValue()
                     }
                 }
@@ -71,8 +73,27 @@ class AdRemoteConfigJsonAdapterFactory : JsonAdapter.Factory {
                     reloadIntervalSeconds = reloadIntervalSeconds,
                     colorCTA = colorCTA,
                     heightCTA = heightCTA,
-                    positionCTA = positionCTA
+                    positionCTA = positionCTA,
+                    components = components
                 )
+            }
+
+            private fun readComponentsList(reader: JsonReader): List<String> {
+                val list = mutableListOf<String>()
+                if (reader.peek() == JsonReader.Token.BEGIN_ARRAY) {
+                    reader.beginArray()
+                    while (reader.hasNext()) {
+                        if (reader.peek() == JsonReader.Token.STRING) {
+                            list.add(reader.nextString())
+                        } else {
+                            reader.skipValue()
+                        }
+                    }
+                    reader.endArray()
+                } else {
+                    reader.skipValue()
+                }
+                return list.ifEmpty { listOf("icon_headline", "body", "media", "cta") }
             }
 
             private fun readHeightValue(reader: JsonReader): Int {
