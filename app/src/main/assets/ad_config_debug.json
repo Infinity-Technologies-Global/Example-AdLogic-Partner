@@ -17,70 +17,80 @@
     "isEnable": true,
     "colorCTA": "default",
     "heightCTA": 40,
-    "positionCTA": "BOTTOM"
+    "positionCTA": "BOTTOM",
+    "components": ["icon_headline", "body", "media", "cta"]
   },
   "native_language_1_click": {
     "id": "ca-app-pub-3940256099942544/2247696110",
     "isEnable": true,
     "colorCTA": "default",
     "heightCTA": 40,
-    "positionCTA": "BOTTOM"
+    "positionCTA": "BOTTOM",
+    "components": ["icon_headline", "body", "media", "cta"]
   },
   "native_language_2": {
     "id": "ca-app-pub-3940256099942544/2247696110",
     "isEnable": true,
     "colorCTA": "default",
     "heightCTA": 40,
-    "positionCTA": "BOTTOM"
+    "positionCTA": "BOTTOM",
+    "components": ["icon_headline", "body", "media", "cta"]
   },
   "native_language_2_click": {
     "id": "ca-app-pub-3940256099942544/2247696110",
     "isEnable": true,
     "colorCTA": "default",
     "heightCTA": 40,
-    "positionCTA": "BOTTOM"
+    "positionCTA": "BOTTOM",
+    "components": ["icon_headline", "body", "media", "cta"]
   },
   "native_onboarding_1_1": {
     "id": "ca-app-pub-3940256099942544/2247696110",
     "isEnable": true,
     "colorCTA": "default",
     "heightCTA": 40,
-    "positionCTA": "BOTTOM"
+    "positionCTA": "BOTTOM",
+    "components": ["icon_headline", "body", "media", "cta"]
   },
   "native_onboarding_2_1": {
     "id": "ca-app-pub-3940256099942544/2247696110",
     "isEnable": true,
     "colorCTA": "default",
     "heightCTA": 40,
-    "positionCTA": "BOTTOM"
+    "positionCTA": "BOTTOM",
+    "components": ["icon_headline", "body", "media", "cta"]
   },
   "native_onboarding_1_4": {
     "id": "ca-app-pub-3940256099942544/2247696110",
     "isEnable": true,
     "colorCTA": "default",
     "heightCTA": 40,
-    "positionCTA": "BOTTOM"
+    "positionCTA": "BOTTOM",
+    "components": ["icon_headline", "body", "media", "cta"]
   },
   "native_onboarding_2_4": {
     "id": "ca-app-pub-3940256099942544/2247696110",
     "isEnable": true,
     "colorCTA": "default",
     "heightCTA": 40,
-    "positionCTA": "BOTTOM"
+    "positionCTA": "BOTTOM",
+    "components": ["icon_headline", "body", "media", "cta"]
   },
   "native_onboarding_fullscreen_1_3": {
     "id": "ca-app-pub-3940256099942544/2247696110",
     "isEnable": true,
     "colorCTA": "default",
     "heightCTA": 40,
-    "positionCTA": "BOTTOM"
+    "positionCTA": "BOTTOM",
+    "components": ["icon_headline", "body", "media", "cta"]
   },
   "native_onboarding_fullscreen_2_3": {
     "id": "ca-app-pub-3940256099942544/2247696110",
     "isEnable": true,
     "colorCTA": "default",
     "heightCTA": 40,
-    "positionCTA": "BOTTOM"
+    "positionCTA": "BOTTOM",
+    "components": ["icon_headline", "body", "media", "cta"]
   },
   "inter_onboarding": {
     "id": "ca-app-pub-3940256099942544/1033173712",
@@ -96,21 +106,24 @@
     "isEnable": true,
     "colorCTA": "default",
     "heightCTA": 40,
-    "positionCTA": "BOTTOM"
+    "positionCTA": "BOTTOM",
+    "components": ["icon_headline", "body", "media", "cta"]
   },
   "native_confirm_uninstall": {
     "id": "ca-app-pub-3940256099942544/2247696110",
     "isEnable": true,
     "colorCTA": "default",
     "heightCTA": 40,
-    "positionCTA": "BOTTOM"
+    "positionCTA": "BOTTOM",
+    "components": ["icon_headline", "body", "media", "cta"]
   },
   "native_welcome": {
     "id": "ca-app-pub-3940256099942544/2247696110",
     "isEnable": false,
     "colorCTA": "default",
     "heightCTA": 40,
-    "positionCTA": "BOTTOM"
+    "positionCTA": "BOTTOM",
+    "components": ["icon_headline", "body", "media", "cta"]
   },
   "inter_welcome": {
     "id": "ca-app-pub-3940256099942544/1033173712",
