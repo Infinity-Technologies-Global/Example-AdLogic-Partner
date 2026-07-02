@@ -109,11 +109,41 @@ object AdsManager {
             ERainAd.getInstance().shouldDisplayNativeWelcomeBack)
     }
 
-    fun loadInterOnboarding(context: Context) {
+    // ── Dashboard / Test helpers (ignore shouldDisplay) ──
+
+    /** Dedicated LiveData for customization preview – won't collide with real flows */
+    val nativeDashboardPreviewLive = MutableLiveData<ApNativeAd?>()
+
+    /**
+     * Load a native ad for dashboard preview purposes.
+     * Bypasses all shouldDisplay checks so it always loads.
+     */
+    fun loadNativeForDashboard(activity: Activity, configKey: String, layoutRes: Int) {
+        val config = try {
+            AdRemoteConfig.getInstance().ads[configKey]
+                ?: AdUnitConfig(id = "", isEnable = false)
+        } catch (_: Exception) {
+            AdUnitConfig(id = "", isEnable = false)
+        }
+        // Force shouldDisplay = true to bypass SDK limits
+        loadNativeInternal(activity, config, layoutRes, nativeDashboardPreviewLive, shouldDisplay = true)
+    }
+
+    /** Load native language ad for dashboard – ignores shouldDisplay */
+    fun loadNativeLanguageForDashboard(activity: Activity, layoutRes: Int) {
+        loadNativeForDashboard(activity, "native_language_1", layoutRes)
+    }
+
+    /** Load native onboarding full for dashboard – ignores shouldDisplay */
+    fun loadNativeFullForDashboard(activity: Activity, layoutRes: Int) {
+        loadNativeForDashboard(activity, "native_onboarding_fullscreen_1_3", layoutRes)
+    }
+
+    fun loadInterOnboarding(context: Context, ignoreLimit: Boolean = false) {
         val config = AdRemoteConfig.inter_onboarding
         if (!config.isEnable
             || AppPurchase.getInstance().isPurchased(context)
-            || !ERainAd.getInstance().shouldDisplayInterOnboarding
+            || (!ignoreLimit && !ERainAd.getInstance().shouldDisplayInterOnboarding)
         ) {
             interOnboarding = null
             return
@@ -122,10 +152,10 @@ object AdsManager {
             ERainAd.getInstance().getInterstitialAds(context, config.id, object : AdCallback() {})
     }
 
-    fun showInterOnboarding(context: Context, onAction: () -> Unit) {
+    fun showInterOnboarding(context: Context, ignoreLimit: Boolean = false, onAction: () -> Unit) {
         val interstitial = interOnboarding
         if (interstitial != null && interstitial.isReady && !AppPurchase.getInstance()
-                .isPurchased(context) && ERainAd.getInstance().shouldDisplayInterOnboarding
+                .isPurchased(context) && (ignoreLimit || ERainAd.getInstance().shouldDisplayInterOnboarding)
         ) {
             ERainAd.getInstance()
                 .forceShowInterstitial(context, interstitial, object : AdCallback() {
@@ -139,11 +169,11 @@ object AdsManager {
         }
     }
 
-    fun loadInterWelcome(context: Context) {
+    fun loadInterWelcome(context: Context, ignoreLimit: Boolean = false) {
         val config = AdRemoteConfig.inter_welcome
         if (!config.isEnable
             || AppPurchase.getInstance().isPurchased(context)
-            || ERainAd.getInstance().shouldDisplayInterWelcomeBack
+            || (!ignoreLimit && !ERainAd.getInstance().shouldDisplayInterWelcomeBack)
         ) {
             interWelcomeAd = null
             return
@@ -152,10 +182,10 @@ object AdsManager {
             ERainAd.getInstance().getInterstitialAds(context, config.id, object : AdCallback() {})
     }
 
-    fun showInterWelcome(context: Context, onAction: () -> Unit) {
+    fun showInterWelcome(context: Context, ignoreLimit: Boolean = false, onAction: () -> Unit) {
         val interstitial = interWelcomeAd
         if (interstitial != null && interstitial.isReady && !AppPurchase.getInstance()
-                .isPurchased(context)
+                .isPurchased(context) && (ignoreLimit || ERainAd.getInstance().shouldDisplayInterWelcomeBack)
         ) {
             ERainAd.getInstance().forceShowInterstitial(context, interstitial, object : AdCallback() {
                 override fun onNextAction() {

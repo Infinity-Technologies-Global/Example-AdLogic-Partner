@@ -18,4 +18,19 @@
     <color name="textPrimary">#1F1F1F</color>
     <color name="color_button">#3397FF</color>
 
+    <!-- Dashboard colors -->
+    <color name="color_header_start">#0573B8</color>
+    <color name="color_header_end">#3397FF</color>
+    <color name="color_section_bg">#F8FAFE</color>
+    <color name="color_card_bg">#FFFFFF</color>
+    <color name="color_success">#2E7D32</color>
+    <color name="color_error">#C62828</color>
+    <color name="color_warning">#F57F17</color>
+    <color name="color_divider">#E8EDF2</color>
+    <color name="color_text_secondary">#5F6368</color>
+    <color name="color_inter_card">#EDE7F6</color>
+    <color name="color_native_card">#E3F2FD</color>
+    <color name="color_flag_card">#FFF3E0</color>
+    <color name="color_util_card">#E8F5E9</color>
+
 </resources>

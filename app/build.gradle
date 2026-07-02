@@ -88,6 +88,7 @@ android {
     }
     kotlinOptions {
         jvmTarget = '17'
+        freeCompilerArgs += ["-Xskip-metadata-version-check"]
     }
 
     buildFeatures {
@@ -165,7 +166,7 @@ dependencies {
 
     // Ads
     implementation "com.github.trongluan99:ERain-Studio:$erain_studio_version"
-    implementation 'com.github.Infinity-Technologies-Global:DevConfig:1.0.3-partner'
+    implementation 'com.github.Infinity-Technologies-Global:DevConfig:1.0.7-partner'
     implementation "com.github.Infinity-Technologies-Global:Module-Update-GDPR:$module_update_gdpr_version"
     implementation "com.google.android.play:review-ktx:$play_review_ktx_version"
     implementation "com.facebook.shimmer:shimmer:$shimmer_version"

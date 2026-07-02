@@ -63,10 +63,9 @@ class GlobalApp : AdsMultiDexApplication() {
         initAdRemoteConfig()
         initAds()
 
-        if (ResumeAdsEntryRule.shouldShowWelcomeOnResume()) {
-            ProcessLifecycleOwner.get().lifecycle.addObserver(AppLifecycleObserver())
-            registerActivityLifecycleCallbacks(AppActivityLifecycleCallbacks())
-        }
+        // Unconditionally register lifecycle observer and callbacks so dynamic welcome/resume toggling works during testing
+        ProcessLifecycleOwner.get().lifecycle.addObserver(AppLifecycleObserver())
+        registerActivityLifecycleCallbacks(AppActivityLifecycleCallbacks())
     }
 
     private fun initAdRemoteConfig() {
