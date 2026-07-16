@@ -66,7 +66,7 @@ ext {
     firebase_crashlytics_gradle_version = '3.0.5'
     
     // Ads & Billing
-    erain_studio_version = '1.8'
+    erain_studio_version = '2.0'
     module_update_gdpr_version = '2.0.2'
     play_review_ktx_version = '2.0.2'
     play_services_ads_version = '24.7.0'

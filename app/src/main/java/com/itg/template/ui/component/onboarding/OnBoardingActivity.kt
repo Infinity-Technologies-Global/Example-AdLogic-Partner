@@ -8,8 +8,11 @@ import androidx.viewpager2.widget.MarginPageTransformer
 import androidx.viewpager2.widget.ViewPager2
 import com.ads.module.ads.ERainAd
 import com.itg.template.R
+import com.itg.template.ads.AdRemoteConfig
 import com.itg.template.ads.AdsManager
 import com.itg.template.ads.RemoteConfigUtils
+import com.itg.template.ads.native_confirm_uninstall
+import com.itg.template.ads.native_onboarding_fullscreen_1_3
 import com.itg.template.databinding.ActivityOnboardingBinding
 import com.itg.template.ui.bases.BaseActivity
 import com.itg.template.ui.bases.ext.isNetwork
@@ -56,7 +59,8 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>() {
 
     private fun applyUninstallWidgetShortcutsFromRemoteConfig() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return
-        if (RemoteConfigUtils.getOnEnableUninstallWidget() && ERainAd.getInstance().shouldDisplayWidgetUninstall) {
+        if (ERainAd.getInstance().getShouldDisplayWidgetUninstall(
+                RemoteConfigUtils.getOnEnableUninstallWidget())) {
             ShortcutManager.initShortCut(this@OnBoardingActivity)
         }
     }
@@ -124,7 +128,8 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>() {
             )
         )
 
-        if (isNetwork(this@OnBoardingActivity) && ERainAd.getInstance().shouldDisplayNativeOnboardingFull1)
+        if (isNetwork(this@OnBoardingActivity) && ERainAd.getInstance().getShouldDisplayNativeOnboardingFull1(
+                AdRemoteConfig.native_onboarding_fullscreen_1_3.enableUaCheck))
             onboardingItems.add(
                 OnboardingItem(
                     isHasNativeFull = true

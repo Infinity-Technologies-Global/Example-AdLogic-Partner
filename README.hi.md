@@ -21,7 +21,7 @@
 
 ### 2. load/show logic optimized baseline है
 
-वर्तमान base flow — `GlobalApp` में early init, `Splash` में config sync, next-screen preload, `AdsManager` में centralized gating, और `ERainAd.shouldDisplay...` से organic handling — iterative optimization का परिणाम है:
+वर्तमान base flow — `GlobalApp` में early init, `Splash` में config sync, next-screen preload, `AdsManager` में centralized gating, और `ERainAd.getShouldDisplay*(enableUaCheck)` से organic handling — iterative optimization का परिणाम है:
 
 - सही load timing
 - UI jank कम
@@ -42,7 +42,7 @@
 | Welcome / Resume | `native_welcome`, `inter_welcome`, `ResumeAdsEntryRule` |
 | Banner (Home + screens extending `BaseActivityWithBanner`) | Normal / collapsible banner, reload by config |
 
-UI customization के समय केवल layout/container बदलें। `isEnable`, purchase, network, और `shouldDisplay...` checks **remove न करें**।
+UI customization के समय केवल layout/container बदलें। `isEnable`, purchase, network, और `getShouldDisplay*(config.enableUaCheck)` checks **remove न करें**।
 
 ### 4. custom app screens को load/show rules follow करना होगा
 
@@ -51,7 +51,7 @@ UI customization के समय केवल layout/container बदलें�
 1. `ad_config.json` / `ad_config_debug.json` में placement keys जोड़ें और `AdRemoteConfig` में matching properties जोड़ें।
 2. `AdsManager` में load methods जोड़ें (native के लिए `loadNativeInternal`, interstitial के लिए `load` + `show` pattern)।
 3. Activity/Fragment में `initViews` पर load करें (optional short `postDelayed`), LiveData observe करें, ad मिलने पर `populateNativeAdView` call करें, `null` होने पर container hide करें।
-4. sensitive placements (onboarding-like, welcome, widget...) के लिए relevant `ERainAd.getInstance().shouldDisplay...` gate लगाएं या shipping से पहले Infinity से align करें।
+4. sensitive placements (onboarding-like, welcome, home, permission, widget...) के लिए **100% mandatory**: `ERainAd.getInstance().getShouldDisplay*(config.enableUaCheck)` section 4 mapping के अनुसार लगाएं।
 5. banner के लिए `BaseActivityWithBanner` extend करें, `BannerConfig` configure करें, `AdsManager.loadBanner` के बाहर banner load न करें।
 
 Detailed UI/Ads reference (CTA size, Done button delay, native placement by page):  
@@ -174,10 +174,10 @@ private fun initAds() {
 
 ### 2.4 Welcome / Resume
 - Native welcome:
-  - `AdsManager.loadNativeWelcome(...)`, gate: `shouldDisplayNativeWelcomeBack`
+  - `AdsManager.loadNativeWelcome(...)`, gate: `getShouldDisplayNativeWelcomeBack(config.enableUaCheck)`
 - Inter welcome:
   - `AdsManager.loadInterWelcome(...)`, `AdsManager.showInterWelcome(...)`
-  - Welcome flow `AppLifecycleObserver` द्वारा trigger होता है जब `ResumeAdsEntryRule.shouldShowWelcomeOnResume()` और `shouldDisplayInterWelcomeBack` allow करते हैं।
+  - Welcome flow `AppLifecycleObserver` द्वारा trigger होता है जब `ResumeAdsEntryRule.shouldShowWelcomeOnResume()` और `getShouldDisplayInterWelcomeBack(AdRemoteConfig.inter_welcome.enableUaCheck)` allow करते हैं।
 
 ### 2.5 Banner (normal / collapsible)
 - `BaseActivityWithBanner` use करें।
@@ -191,39 +191,82 @@ private fun initAds() {
 - `adUnitConfig.isEnable == true`
 - `!AppPurchase.getInstance().isPurchased(...)`
 - Network available
-- यदि organic gate applicable हो: `shouldDisplay... == true`
+- mandatory organic-gated placements के लिए: `getShouldDisplay*(config.enableUaCheck) == true`
 
 कोई भी condition fail होने पर native LiveData `null` emit करेगा, इसलिए UI ad container hide करेगा।
 
-## 4. `shouldDisplay*` variables (Ads / Organic)
-- `shouldDisplayNativeOnboardingNormal1`
-  - `AdsManager.loadNativeOnboarding1(...)` में उपयोग
-- `shouldDisplayNativeOnboardingNormal2`
-  - `AdsManager.loadNativeOnboarding4(...)` में उपयोग
-- `shouldDisplayNativeOnboardingFull1`
-  - `AdsManager.loadNativeOnboardingFull(...)` में उपयोग
-  - `OnBoardingActivity.initOnboardingItems()` में full native page insert निर्णय के लिए भी उपयोग
-- `shouldDisplayInterOnboarding`
-  - `loadInterOnboarding(...)` और `showInterOnboarding(...)` दोनों में उपयोग
-- `shouldDisplayNativeWelcomeBack`
-  - `loadNativeWelcome(...)` में उपयोग
-- `shouldDisplayInterWelcomeBack`
-  - `AppLifecycleObserver` में उपयोग (welcome flow gate)
-  - `loadInterWelcome(...)` condition का भी हिस्सा
-- `shouldDisplayWidgetUninstall`
-  - `OnBoardingActivity.applyUninstallWidgetShortcutsFromRemoteConfig()` में uninstall widget enable/disable के लिए उपयोग
+## 4. `getShouldDisplay*` standard per placement (100% mandatory)
+
+> **Mandatory:** नीचे दिए गए placements में से 100% पर SDK का `getShouldDisplay*` check **जरूरी** है।  
+> Parameter `enableUaCheck` है — `ad_config.json` / `ad_config_debug.json` के placement config से आता है (`AdUnitConfig.enableUaCheck` में map)।  
+> यह organic/UA check flag है (ads config से force organic) — **`true/false` hard-code न करें**; हमेशा उसी placement के config से लें जो load/show हो रहा है।
+### 4.1 Standard mapping (`AdsManager` के अनुसार)
+
+| Ad placement | Required SDK method | Default `enable_ua_check` in ad_config.json | Param from ad_config | Code usage |
+|--------------|---------------------|:----------------------------------------:|----------------------|------------|
+| **NativeOnboardingFull1** | `getShouldDisplayNativeOnboardingFull1(...)` |                  `true`                  | `config.enableUaCheck` | `AdsManager.loadNativeOnboardingFull` (+ `OnBoardingActivity` में full page insert) |
+| **NativeOnboardingFull2** | `getShouldDisplayNativeOnboardingFull2(...)` |                  `true`                  | `config.enableUaCheck` | `AdsManager.loadNativeOnboardingFull2` (+ `OnBoardingActivity` में full page insert) |
+| **NativeOnboardingNormal2** | `getShouldDisplayNativeOnboardingNormal2(...)` |                 `false`                  | `config.enableUaCheck` | `AdsManager.loadNativeOnboarding4` |
+| **NativeHome** | `getShouldDisplayNativeHome(...)` |                 `false`                  | `config.enableUaCheck` | `AdsManager.loadNativeHome` |
+| **NativePermission** | `getShouldDisplayNativePermission(...)` |                 `false`                  | `config.enableUaCheck` | `AdsManager.loadNativePermission` |
+| **InterOnboarding** | `getShouldDisplayInterOnboarding(...)` |                  `true`                  | `config.enableUaCheck` | `AdsManager.loadInterOnboarding` / `showInterOnboarding` |
+| **NativeWelcomeBack** | `getShouldDisplayNativeWelcomeBack(...)` |                 `false`                  | `config.enableUaCheck` | `AdsManager.loadNativeWelcome` |
+| **WidgetUninstall** | `getShouldDisplayWidgetUninstall(...)` |                 `false`                  | `config.enableUaCheck` | `OnBoardingActivity` widget shortcut; `loadNativeSurvey` / `loadNativeConfirmUninstall` |
+
+> **ad_config defaults:** JSON declare करते समय ऊपर वाले column के default `enable_ua_check` set करें, जब तक Infinity अलग value न दे। उदाहरण: Full1/Full2/`inter_onboarding` default `true`; बाकी placements default `false`।
+
+### 4.3 ad_config से param कैसे लें
+
+हर placement के JSON में:
+
+```json
+"native_onboarding_fullscreen_1_3": {
+  "id": "ca-app-pub-xxx/yyy",
+  "isEnable": true,
+  "enable_ua_check": true
+}
+```
+
+Code में:
+
+```kotlin
+val config = AdRemoteConfig.native_onboarding_fullscreen_1_3
+ERainAd.getInstance().getShouldDisplayNativeOnboardingFull1(config.enableUaCheck)
+```
+
+| JSON key | Kotlin field | Meaning |
+|----------|--------------|---------|
+| `enable_ua_check` | `AdUnitConfig.enableUaCheck` | उस placement के लिए organic (UA) check on/off जब `getShouldDisplay*` call हो |
+
+### 4.4 Mandatory load pattern
+
+```kotlin
+loadNativeInternal(
+    activity,
+    config,
+    layoutRes,
+    liveData,
+    ERainAd.getInstance().getShouldDisplayNativeOnboardingFull1(config.enableUaCheck)
+)
+```
+
+**Compliant नहीं अगर:**
+- ऊपर की table में किसी placement पर `getShouldDisplay*` skip करें।
+- `getShouldDisplay*(true/false)` hard-code करें बजाय `config.enableUaCheck` के।
+- गलत gate method इस्तेमाल करें (जैसे Full1 पर Normal2)।
 
 ## 5. Organic mechanism
 
-यहां Organic का मतलब Ads SDK / growth logic से user classification है, जिसका उपयोग इन उद्देश्यों के लिए होता है:
-- कुछ users के लिए sensitive ad slots की frequency कम करना या disable करना
-- retention, UX, और revenue के बीच balance रखना
-- हर screen को rewrite किए बिना cohort-based rules चलाना
+Organic Ads SDK / growth logic से user classification है, जिसके लिए:
+- कुछ users पर sensitive ad slots की frequency कम करना या disable करना
+- retention, UX, और revenue का balance रखना
+- हर screen rewrite किए बिना cohort rules लागू करना
 
-इस app में यह कैसे काम करता है:
-- app local स्तर पर organic compute नहीं करता; यह `ERainAd.getInstance().shouldDisplay...` flags पढ़ता है।
-- organic/cohort rules बदलने पर ये flags बदलते हैं और हर slot के load/show behavior को सीधे प्रभावित करते हैं।
-- DevSetting में `reset organic` QA को clean test state देता है ताकि सभी ad slots + uninstall widget behavior फिर से verify हो सके।
+इस app में कैसे काम करता है:
+- app local rules से organic compute **नहीं** करता।
+- app `ERainAd.getInstance().getShouldDisplay*(enableUaCheck)` call करता है, `enableUaCheck` `ad_config` से आता है।
+- organic/cohort rules बदलने पर ये method results बदलते हैं और हर slot के load/show को सीधे affect करते हैं।
+- DevSetting / Unlimited Ads + `reset organic` QA को सभी ad placements + uninstall widget re-verify करने में मदद करते हैं।
 
 ## 6. Load/show examples (quick reference)
 

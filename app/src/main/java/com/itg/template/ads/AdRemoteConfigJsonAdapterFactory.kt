@@ -48,6 +48,7 @@ class AdRemoteConfigJsonAdapterFactory : JsonAdapter.Factory {
             private fun readAdUnitConfig(reader: JsonReader): AdUnitConfig {
                 var id = ""
                 var isEnable = false
+                var enableUaCheck = false
                 var reloadIntervalSeconds: Int? = null
                 var colorCTA = "default"
                 var heightCTA = 40
@@ -58,6 +59,7 @@ class AdRemoteConfigJsonAdapterFactory : JsonAdapter.Factory {
                     when (reader.nextName()) {
                         "id" -> id = reader.nextString()
                         "isEnable" -> isEnable = reader.nextBoolean()
+                        "enable_ua_check" -> enableUaCheck = reader.nextBoolean()
                         "reloadIntervalSeconds" -> reloadIntervalSeconds = reader.nextInt()
                         "colorCTA" -> colorCTA = safeNextString(reader, "default")
                         "heightCTA" -> heightCTA = readHeightValue(reader)
@@ -70,6 +72,7 @@ class AdRemoteConfigJsonAdapterFactory : JsonAdapter.Factory {
                 return AdUnitConfig(
                     id = id,
                     isEnable = isEnable,
+                    enableUaCheck = enableUaCheck,
                     reloadIntervalSeconds = reloadIntervalSeconds,
                     colorCTA = colorCTA,
                     heightCTA = heightCTA,

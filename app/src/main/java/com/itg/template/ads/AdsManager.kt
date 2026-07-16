@@ -24,14 +24,19 @@ import timber.log.Timber
 @SuppressLint("StaticFieldLeak")
 object AdsManager {
 
-    val nativeLanguageAdLive            = MutableLiveData<ApNativeAd?>()
-    val nativeLanguageClickAdLive       = MutableLiveData<ApNativeAd?>()
-    val nativeOnboarding1AdLive         = MutableLiveData<ApNativeAd?>()
-    val nativeOnboarding4AdLive         = MutableLiveData<ApNativeAd?>()
-    val nativeAdOnBoardingFullLive      = MutableLiveData<ApNativeAd?>()
-    val nativeSurveyAdLive              = MutableLiveData<ApNativeAd?>()
-    val nativeConfirmUninstallAdLive    = MutableLiveData<ApNativeAd?>()
-    val nativeWelcomeAdLive             = MutableLiveData<ApNativeAd?>()
+    val nativeLanguageAdLive = MutableLiveData<ApNativeAd?>()
+    val nativeLanguageClickAdLive = MutableLiveData<ApNativeAd?>()
+    val nativeOnboarding1AdLive = MutableLiveData<ApNativeAd?>()
+    val nativeOnboarding4AdLive = MutableLiveData<ApNativeAd?>()
+    val nativeAdOnBoardingFullLive = MutableLiveData<ApNativeAd?>()
+    val nativeAdOnBoardingFull2Live = MutableLiveData<ApNativeAd?>()
+    val nativeSurveyAdLive = MutableLiveData<ApNativeAd?>()
+    val nativeConfirmUninstallAdLive = MutableLiveData<ApNativeAd?>()
+    val nativeWelcomeAdLive = MutableLiveData<ApNativeAd?>()
+
+    val nativePermissionAdLive = MutableLiveData<ApNativeAd?>()
+
+    val nativeHomeAdLive = MutableLiveData<ApNativeAd?>()
 
     // Auto-resolve config for each loaded native ad
     private val adConfigMap = mutableMapOf<ApNativeAd, AdUnitConfig>()
@@ -72,41 +77,123 @@ object AdsManager {
     }
 
     fun loadNativeLanguage(activity: Activity, isFirst: Boolean, layoutRes: Int) {
-        val config = if (isFirst) AdRemoteConfig.native_language_1 else AdRemoteConfig.native_language_2
-        loadNativeInternal(activity, config, layoutRes, nativeLanguageAdLive)
+        val config =
+            if (isFirst) AdRemoteConfig.native_language_1 else AdRemoteConfig.native_language_2
+        loadNativeInternal(
+            activity,
+            config,
+            layoutRes,
+            nativeLanguageAdLive
+        )
     }
 
     fun loadNativeLanguageClick(activity: Activity, isFirst: Boolean, layoutRes: Int) {
-        val config = if (isFirst) AdRemoteConfig.native_language_1_click else AdRemoteConfig.native_language_2_click
-        loadNativeInternal(activity, config, layoutRes, nativeLanguageClickAdLive)
+        val config =
+            if (isFirst) AdRemoteConfig.native_language_1_click else AdRemoteConfig.native_language_2_click
+        loadNativeInternal(
+            activity,
+            config,
+            layoutRes,
+            nativeLanguageClickAdLive
+        )
     }
 
     fun loadNativeOnboarding1(activity: Activity, isFirst: Boolean, layoutRes: Int) {
-        val config = if (isFirst) AdRemoteConfig.native_onboarding_1_1 else AdRemoteConfig.native_onboarding_2_1
-        loadNativeInternal(activity, config, layoutRes, nativeOnboarding1AdLive, ERainAd.getInstance().shouldDisplayNativeOnboardingNormal1)
+        val config =
+            if (isFirst) AdRemoteConfig.native_onboarding_1_1 else AdRemoteConfig.native_onboarding_2_1
+        loadNativeInternal(
+            activity,
+            config,
+            layoutRes,
+            nativeOnboarding1AdLive
+        )
     }
 
     fun loadNativeOnboarding4(activity: Activity, isFirst: Boolean, layoutRes: Int) {
-        val config = if (isFirst) AdRemoteConfig.native_onboarding_1_4 else AdRemoteConfig.native_onboarding_2_4
-        loadNativeInternal(activity, config, layoutRes, nativeOnboarding4AdLive, ERainAd.getInstance().shouldDisplayNativeOnboardingNormal2)
+        val config =
+            if (isFirst) AdRemoteConfig.native_onboarding_1_4 else AdRemoteConfig.native_onboarding_2_4
+        loadNativeInternal(
+            activity,
+            config,
+            layoutRes,
+            nativeOnboarding4AdLive,
+            ERainAd.getInstance().getShouldDisplayNativeOnboardingNormal2(config.enableUaCheck)
+        )
     }
 
     fun loadNativeOnboardingFull(activity: Activity, isFirst: Boolean, layoutRes: Int) {
-        val config = if (isFirst) AdRemoteConfig.native_onboarding_fullscreen_1_3 else AdRemoteConfig.native_onboarding_fullscreen_2_3
-        loadNativeInternal(activity, config, layoutRes, nativeAdOnBoardingFullLive, ERainAd.getInstance().shouldDisplayNativeOnboardingFull1)
+        val config =
+            if (isFirst) AdRemoteConfig.native_onboarding_fullscreen_1_3 else AdRemoteConfig.native_onboarding_fullscreen_2_3
+        loadNativeInternal(
+            activity,
+            config,
+            layoutRes,
+            nativeAdOnBoardingFullLive,
+            ERainAd.getInstance().getShouldDisplayNativeOnboardingFull1(config.enableUaCheck)
+        )
+    }
+
+    fun loadNativeOnboardingFull2(activity: Activity, isFirst: Boolean, layoutRes: Int) {
+        val config =
+            if (isFirst) AdRemoteConfig.native_onboarding_fullscreen_1_4 else AdRemoteConfig.native_onboarding_fullscreen_2_4
+        loadNativeInternal(
+            activity,
+            config,
+            layoutRes,
+            nativeAdOnBoardingFull2Live,
+            ERainAd.getInstance().getShouldDisplayNativeOnboardingFull2(config.enableUaCheck)
+        )
+    }
+
+    fun loadNativePermission(activity: Activity, layoutRes: Int) {
+        val config = AdRemoteConfig.native_permission
+        loadNativeInternal(
+            activity,
+            config,
+            layoutRes,
+            nativePermissionAdLive,
+            ERainAd.getInstance().getShouldDisplayNativePermission(config.enableUaCheck)
+            )
+    }
+
+    fun loadNativeHome(activity: Activity, layoutRes: Int) {
+        val config = AdRemoteConfig.native_home
+        loadNativeInternal(
+            activity,
+            config,
+            layoutRes,
+            nativeHomeAdLive,
+            ERainAd.getInstance().getShouldDisplayNativeHome(config.enableUaCheck)
+        )
     }
 
     fun loadNativeSurvey(activity: Activity, layoutRes: Int) {
-        loadNativeInternal(activity, AdRemoteConfig.native_survey, layoutRes, nativeSurveyAdLive)
+        loadNativeInternal(
+            activity, AdRemoteConfig.native_survey, layoutRes, nativeSurveyAdLive,
+            ERainAd.getInstance()
+                .getShouldDisplayWidgetUninstall(AdRemoteConfig.native_survey.enableUaCheck)
+        )
     }
 
     fun loadNativeConfirmUninstall(activity: Activity, layoutRes: Int) {
-        loadNativeInternal(activity, AdRemoteConfig.native_confirm_uninstall, layoutRes, nativeConfirmUninstallAdLive)
+        loadNativeInternal(
+            activity,
+            AdRemoteConfig.native_confirm_uninstall,
+            layoutRes,
+            nativeConfirmUninstallAdLive,
+            ERainAd.getInstance()
+                .getShouldDisplayWidgetUninstall(AdRemoteConfig.native_confirm_uninstall.enableUaCheck)
+        )
     }
 
     fun loadNativeWelcome(activity: Activity, layoutRes: Int) {
-        loadNativeInternal(activity, AdRemoteConfig.native_welcome, layoutRes, nativeWelcomeAdLive,
-            ERainAd.getInstance().shouldDisplayNativeWelcomeBack)
+        loadNativeInternal(
+            activity,
+            AdRemoteConfig.native_welcome,
+            layoutRes,
+            nativeWelcomeAdLive,
+            ERainAd.getInstance().getShouldDisplayNativeWelcomeBack(AdRemoteConfig.native_welcome.enableUaCheck)
+        )
     }
 
     // ── Dashboard / Test helpers (ignore shouldDisplay) ──
@@ -126,7 +213,13 @@ object AdsManager {
             AdUnitConfig(id = "", isEnable = false)
         }
         // Force shouldDisplay = true to bypass SDK limits
-        loadNativeInternal(activity, config, layoutRes, nativeDashboardPreviewLive, shouldDisplay = true)
+        loadNativeInternal(
+            activity,
+            config,
+            layoutRes,
+            nativeDashboardPreviewLive,
+            shouldDisplay = true
+        )
     }
 
     /** Load native language ad for dashboard – ignores shouldDisplay */
@@ -143,7 +236,7 @@ object AdsManager {
         val config = AdRemoteConfig.inter_onboarding
         if (!config.isEnable
             || AppPurchase.getInstance().isPurchased(context)
-            || (!ignoreLimit && !ERainAd.getInstance().shouldDisplayInterOnboarding)
+            || (!ignoreLimit && !ERainAd.getInstance().getShouldDisplayInterOnboarding(config.enableUaCheck))
         ) {
             interOnboarding = null
             return
@@ -155,7 +248,7 @@ object AdsManager {
     fun showInterOnboarding(context: Context, ignoreLimit: Boolean = false, onAction: () -> Unit) {
         val interstitial = interOnboarding
         if (interstitial != null && interstitial.isReady && !AppPurchase.getInstance()
-                .isPurchased(context) && (ignoreLimit || ERainAd.getInstance().shouldDisplayInterOnboarding)
+                .isPurchased(context) && (ignoreLimit)
         ) {
             ERainAd.getInstance()
                 .forceShowInterstitial(context, interstitial, object : AdCallback() {
@@ -173,7 +266,7 @@ object AdsManager {
         val config = AdRemoteConfig.inter_welcome
         if (!config.isEnable
             || AppPurchase.getInstance().isPurchased(context)
-            || (!ignoreLimit && !ERainAd.getInstance().shouldDisplayInterWelcomeBack)
+            || (!ignoreLimit)
         ) {
             interWelcomeAd = null
             return
@@ -185,14 +278,15 @@ object AdsManager {
     fun showInterWelcome(context: Context, ignoreLimit: Boolean = false, onAction: () -> Unit) {
         val interstitial = interWelcomeAd
         if (interstitial != null && interstitial.isReady && !AppPurchase.getInstance()
-                .isPurchased(context) && (ignoreLimit || ERainAd.getInstance().shouldDisplayInterWelcomeBack)
+                .isPurchased(context) && (ignoreLimit)
         ) {
-            ERainAd.getInstance().forceShowInterstitial(context, interstitial, object : AdCallback() {
-                override fun onNextAction() {
-                    super.onNextAction()
-                    onAction()
-                }
-            }, false)
+            ERainAd.getInstance()
+                .forceShowInterstitial(context, interstitial, object : AdCallback() {
+                    override fun onNextAction() {
+                        super.onNextAction()
+                        onAction()
+                    }
+                }, false)
         } else {
             onAction()
         }

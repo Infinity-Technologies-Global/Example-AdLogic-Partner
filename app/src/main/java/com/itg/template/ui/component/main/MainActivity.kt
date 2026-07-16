@@ -23,9 +23,15 @@ import com.itg.template.ads.AdUnitConfig
 import com.itg.template.ads.AdsManager
 import com.itg.template.ads.RemoteConfigUtils
 import com.itg.template.ads.banner_home
+import com.itg.template.ads.inter_onboarding
 import com.itg.template.ads.open_resume
 import com.itg.template.ads.native_welcome
 import com.itg.template.ads.inter_welcome
+import com.itg.template.ads.native_home
+import com.itg.template.ads.native_onboarding_1_4
+import com.itg.template.ads.native_onboarding_fullscreen_1_3
+import com.itg.template.ads.native_onboarding_fullscreen_1_4
+import com.itg.template.ads.native_permission
 import com.itg.template.ads.populateNativeAdView
 import com.itg.template.data.model.ForceUpdateConfig
 import com.itg.template.databinding.ActivityMainBinding
@@ -394,13 +400,14 @@ class MainActivity : BaseActivityWithBanner<ActivityMainBinding>() {
     private data class FlagInfo(val name: String, val getter: () -> Boolean)
 
     private val flags = listOf(
-        FlagInfo("shouldDisplayInterOnboarding") { ERainAd.getInstance().shouldDisplayInterOnboarding },
-        FlagInfo("shouldDisplayInterWelcomeBack") { ERainAd.getInstance().shouldDisplayInterWelcomeBack },
-        FlagInfo("shouldDisplayNativeOnboardingNormal1") { ERainAd.getInstance().shouldDisplayNativeOnboardingNormal1 },
-        FlagInfo("shouldDisplayNativeOnboardingNormal2") { ERainAd.getInstance().shouldDisplayNativeOnboardingNormal2 },
-        FlagInfo("shouldDisplayNativeOnboardingFull1") { ERainAd.getInstance().shouldDisplayNativeOnboardingFull1 },
-        FlagInfo("shouldDisplayNativeWelcomeBack") { ERainAd.getInstance().shouldDisplayNativeWelcomeBack },
-        FlagInfo("shouldDisplayWidgetUninstall") { ERainAd.getInstance().shouldDisplayWidgetUninstall },
+        FlagInfo("shouldDisplayNativeOnboardingFull1") { ERainAd.getInstance().getShouldDisplayNativeOnboardingFull1(AdRemoteConfig.native_onboarding_fullscreen_1_3.enableUaCheck) },
+        FlagInfo("shouldDisplayNativeOnboardingFull2") { ERainAd.getInstance().getShouldDisplayNativeOnboardingFull2(AdRemoteConfig.native_onboarding_fullscreen_1_4.enableUaCheck) },
+        FlagInfo("shouldDisplayNativeOnboardingNormal2") { ERainAd.getInstance().getShouldDisplayNativeOnboardingNormal2(AdRemoteConfig.native_onboarding_1_4.enableUaCheck) },
+        FlagInfo("shouldDisplayNativeHome") { ERainAd.getInstance().getShouldDisplayNativeHome(AdRemoteConfig.native_home.enableUaCheck) },
+        FlagInfo("shouldDisplayNativePermission") { ERainAd.getInstance().getShouldDisplayNativePermission(AdRemoteConfig.native_permission.enableUaCheck) },
+        FlagInfo("shouldDisplayInterOnboarding") { ERainAd.getInstance().getShouldDisplayInterOnboarding(AdRemoteConfig.inter_onboarding.enableUaCheck) },
+        FlagInfo("shouldDisplayNativeWelcomeBack") { ERainAd.getInstance().getShouldDisplayInterWelcomeBack(AdRemoteConfig.native_welcome.enableUaCheck) },
+        FlagInfo("shouldDisplayWidgetUninstall") { ERainAd.getInstance().getShouldDisplayWidgetUninstall(RemoteConfigUtils.getOnEnableUninstallWidget()) },
     )
 
     private fun buildFlagRows() {
