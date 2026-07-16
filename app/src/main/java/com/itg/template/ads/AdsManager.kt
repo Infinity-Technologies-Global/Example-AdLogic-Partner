@@ -13,11 +13,17 @@ import androidx.lifecycle.MutableLiveData
 import com.ads.module.ads.ERainAd
 import com.ads.module.ads.wrapper.ApInterstitialAd
 import com.ads.module.ads.wrapper.ApNativeAd
+import com.ads.module.ads.wrapper.ApRewardAd
 import com.ads.module.billing.AppPurchase
 import com.ads.module.funtion.AdCallback
+import com.ads.module.funtion.AdType
+import com.ads.module.funtion.RewardCallback
 import com.ads.module.util.AppConstant
+import com.google.android.gms.ads.AdValue
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.LoadAdError
+import com.google.android.gms.ads.rewarded.RewardItem
+import com.google.android.gms.ads.rewarded.RewardedAd
 import com.itg.template.ui.bases.ext.goneView
 import timber.log.Timber
 
@@ -33,11 +39,8 @@ object AdsManager {
     val nativeSurveyAdLive = MutableLiveData<ApNativeAd?>()
     val nativeConfirmUninstallAdLive = MutableLiveData<ApNativeAd?>()
     val nativeWelcomeAdLive = MutableLiveData<ApNativeAd?>()
-
     val nativePermissionAdLive = MutableLiveData<ApNativeAd?>()
-
     val nativeHomeAdLive = MutableLiveData<ApNativeAd?>()
-
     // Auto-resolve config for each loaded native ad
     private val adConfigMap = mutableMapOf<ApNativeAd, AdUnitConfig>()
     fun getAdConfig(ad: ApNativeAd): AdUnitConfig? = adConfigMap[ad]
@@ -45,6 +48,8 @@ object AdsManager {
     private var interSplashAd: ApInterstitialAd? = null
     private var interOnboarding: ApInterstitialAd? = null
     private var interWelcomeAd: ApInterstitialAd? = null
+
+    private var rewardExample :RewardedAd? = null
 
     private fun loadNativeInternal(
         activity: Activity,
@@ -290,6 +295,61 @@ object AdsManager {
         } else {
             onAction()
         }
+    }
+
+    fun loadAndShowReward(
+        activity: Activity,
+        onSuccess: () -> Unit,
+        onFailed: () -> Unit
+    ) {
+        if (AdRemoteConfig.reward_example.isEnable.not() || AppPurchase.getInstance()
+                .isPurchased(activity)
+        ) {
+            onFailed()
+            return
+        }
+
+        ERainAd.getInstance().initRewardAds(
+            activity,
+            AdRemoteConfig.reward_example.id,
+            object : AdCallback() {
+                override fun onRewardAdLoaded(rewardedAd: RewardedAd?) {
+                    super.onRewardAdLoaded(rewardedAd)
+                    rewardExample = rewardedAd
+
+                    var isEarn = false
+                    ERainAd.getInstance().showRewardAds(
+                        activity,
+                        rewardExample,
+                        object : RewardCallback {
+                            override fun onUserEarnedReward(var1: RewardItem?) {
+                                isEarn = true
+                                rewardExample = null
+                            }
+
+                            override fun onRewardedAdClosed() {
+                                if (isEarn) onSuccess()
+                                else onFailed()
+                            }
+
+                            override fun onRewardedAdFailedToShow(codeError: Int) {
+                                rewardExample = null
+                                onFailed()
+                            }
+
+                            override fun onAdClicked() {
+
+                            }
+                        }
+                    )
+                }
+
+                override fun onAdFailedToLoad(i: LoadAdError?) {
+                    super.onAdFailedToLoad(i)
+                    onFailed()
+                }
+            }
+        )
     }
 
     fun loadBanner(

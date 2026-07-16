@@ -220,6 +220,20 @@ class MainActivity : BaseActivityWithBanner<ActivityMainBinding>() {
             }
         }
 
+        // ── Reward Ads ──
+        mBinding.btnLoadShowReward.click {
+            // Dev show Dialog Loading
+            AdsManager.loadAndShowReward(
+                this@MainActivity,
+                onSuccess = {
+                    // Dev gone Dialog Loading and nextAction
+                },
+                onFailed = {
+                    // Dev gone Dialog Loading and nextAction
+                }
+            )
+        }
+
         // ── Native Ads ──
         mBinding.btnLoadNativeSmall.click { loadNativeSmallPreview() }
         mBinding.btnLoadNativeFull.click { loadNativeFullPreview() }
