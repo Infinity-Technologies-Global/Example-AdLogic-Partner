@@ -206,6 +206,7 @@ Nếu fail 1 điều kiện, native LiveData trả `null` để UI ẩn ad conta
 | **NativePermission** | `getShouldDisplayNativePermission(...)` |                    `false`                     | `config.enableUaCheck` | `AdsManager.loadNativePermission` |
 | **InterOnboarding** | `getShouldDisplayInterOnboarding(...)` |                     `true`                     | `config.enableUaCheck` | `AdsManager.loadInterOnboarding` / `showInterOnboarding` |
 | **NativeWelcomeBack** | `getShouldDisplayNativeWelcomeBack(...)` |                    `false`                     | `config.enableUaCheck` | `AdsManager.loadNativeWelcome` |
+| **InterWelcomeBack** | `getShouldDisplayInterWelcomeBack(...)` |                    `false`                     | `config.enableUaCheck` | `AppLifecycleObserver` (chuyển hướng màn Welcome) |
 | **WidgetUninstall** | `getShouldDisplayWidgetUninstall(...)` |                    `false`                     | `config.enableUaCheck` | `OnBoardingActivity` widget shortcut; `loadNativeSurvey` / `loadNativeConfirmUninstall` |
 
 > **Default trong `ad_config`:** khi khai báo JSON, các placement trên phải set `enable_ua_check` đúng default cột trên trừ khi Infinity chỉ định khác. Ví dụ Full1/Full2/`inter_onboarding` mặc định `true`; các vị trí còn lại mặc định `false`.

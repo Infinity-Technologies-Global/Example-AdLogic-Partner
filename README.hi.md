@@ -211,6 +211,7 @@ private fun initAds() {
 | **NativePermission** | `getShouldDisplayNativePermission(...)` |                 `false`                  | `config.enableUaCheck` | `AdsManager.loadNativePermission` |
 | **InterOnboarding** | `getShouldDisplayInterOnboarding(...)` |                  `true`                  | `config.enableUaCheck` | `AdsManager.loadInterOnboarding` / `showInterOnboarding` |
 | **NativeWelcomeBack** | `getShouldDisplayNativeWelcomeBack(...)` |                 `false`                  | `config.enableUaCheck` | `AdsManager.loadNativeWelcome` |
+| **InterWelcomeBack** | `getShouldDisplayInterWelcomeBack(...)` |                 `false`                  | `config.enableUaCheck` | `AppLifecycleObserver` (welcome activity redirection) |
 | **WidgetUninstall** | `getShouldDisplayWidgetUninstall(...)` |                 `false`                  | `config.enableUaCheck` | `OnBoardingActivity` widget shortcut; `loadNativeSurvey` / `loadNativeConfirmUninstall` |
 
 > **ad_config defaults:** JSON declare करते समय ऊपर वाले column के default `enable_ua_check` set करें, जब तक Infinity अलग value न दे। उदाहरण: Full1/Full2/`inter_onboarding` default `true`; बाकी placements default `false`।

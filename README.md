@@ -211,6 +211,7 @@ If any condition fails, native LiveData emits `null` so UI hides the ad containe
 | **NativePermission** | `getShouldDisplayNativePermission(...)` |                   `false`                   | `config.enableUaCheck` | `AdsManager.loadNativePermission` |
 | **InterOnboarding** | `getShouldDisplayInterOnboarding(...)` |                   `true`                    | `config.enableUaCheck` | `AdsManager.loadInterOnboarding` / `showInterOnboarding` |
 | **NativeWelcomeBack** | `getShouldDisplayNativeWelcomeBack(...)` |                   `false`                   | `config.enableUaCheck` | `AdsManager.loadNativeWelcome` |
+| **InterWelcomeBack** | `getShouldDisplayInterWelcomeBack(...)` |                   `false`                   | `config.enableUaCheck` | `AppLifecycleObserver` (welcome screen redirect) |
 | **WidgetUninstall** | `getShouldDisplayWidgetUninstall(...)` |                   `false`                   | `config.enableUaCheck` | `OnBoardingActivity` widget shortcut; `loadNativeSurvey` / `loadNativeConfirmUninstall` |
 
 > **ad_config defaults:** when declaring JSON, set `enable_ua_check` to the default in the column above unless Infinity specifies otherwise. Example: Full1/Full2/`inter_onboarding` default `true`; remaining placements default `false`.
