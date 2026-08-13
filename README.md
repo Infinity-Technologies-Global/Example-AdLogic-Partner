@@ -55,7 +55,7 @@ For any **new custom screen** (not already present in base), partners must follo
 5. For banners: extend `BaseActivityWithBanner`, configure `BannerConfig`, do not load banner outside `AdsManager.loadBanner`.
 
 Detailed UI/Ads reference (CTA size, Done button delay, native placement by page):
-[Infinity UI Documentation — Language & Onboarding](https://interim-pink-4gmxxkfh.edgeone.app/).
+[Infinity UI Documentation — Language & Onboarding](https://docs.itgproduct.com/s/android-sdk-publisher/doc/erain-studio-ad-integration-guide-uiux-standards-RBa1FbknOR).
 
 ---
 
@@ -111,7 +111,7 @@ DevConfig.init(
 > buildConfigField "String", "GDPR_MODULE_VERSION", "\"$module_update_gdpr_version\""
 > ```
 
-**DevConfig testing guide (PO / Tester):** [DevConfig Testing Guide](https://share.jotbird.com/breezy-soaring-high-desert)
+**DevConfig testing guide (PO / Tester):** [DevConfig Testing Guide](https://docs.itgproduct.com/api/attachments.redirect?id=4a0b9b98-84e2-465a-8340-5433e148ff69)
 
 ### 1.5 `initAds()` integration in `GlobalApp` (recommended standard)
 
@@ -316,4 +316,4 @@ override val bannerConfig = BannerConfig(
 
 ## 7. Additional reference
 
-- [Infinity UI Documentation — Language & Onboarding](https://interim-pink-4gmxxkfh.edgeone.app/) — UI, Remote Config, and ad-unit display conditions (placement/method names should be cross-checked against this document).
+- [Infinity UI Documentation — Language & Onboarding](https://docs.itgproduct.com/s/android-sdk-publisher/doc/erain-studio-ad-integration-guide-uiux-standards-RBa1FbknOR) — UI, Remote Config, and ad-unit display conditions (placement/method names should be cross-checked against this document).
