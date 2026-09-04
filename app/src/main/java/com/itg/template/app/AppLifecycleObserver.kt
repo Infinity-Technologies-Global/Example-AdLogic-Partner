@@ -35,7 +35,10 @@ class AppLifecycleObserver : DefaultLifecycleObserver {
                 && !AppPurchase.getInstance().isPurchased(currentActivity.applicationContext)
                 && ERainAd.getInstance().getShouldDisplayInterWelcomeBack(AdRemoteConfig.inter_welcome.enableUaCheck)
             ) {
-                Routes.startWelcomeActivity(currentActivity)
+                if (AppOpenManager.getInstance().isDisableAdResumeByClickAction)
+                    AppOpenManager.getInstance().isDisableAdResumeByClickAction = false
+                else
+                    Routes.startWelcomeActivity(currentActivity)
             }
         }
     }
