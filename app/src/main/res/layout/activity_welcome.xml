@@ -34,20 +34,42 @@
             android:textSize="28sp"
             app:layout_constraintTop_toBottomOf="@id/icon_app" />
 
-        <TextView
+        <FrameLayout
             android:id="@+id/btnStart"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="12dp"
             android:layout_marginBottom="16dp"
             android:background="@drawable/bg_button_app_transparent"
+            android:clickable="true"
+            android:focusable="true"
+            android:minWidth="72dp"
+            android:minHeight="28dp"
             android:paddingHorizontal="20dp"
             android:paddingVertical="4dp"
-            android:text="@string/start"
-            android:textColor="#454545"
-            android:textSize="12sp"
             app:layout_constraintBottom_toTopOf="@id/fr_ads"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <TextView
+                android:id="@+id/tvStart"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="@string/start"
+                android:textColor="#454545"
+                android:textSize="12sp"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <ProgressBar
+                android:id="@+id/progressStart"
+                style="?android:attr/progressBarStyleSmall"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_gravity="center"
+                android:indeterminate="true"
+                android:indeterminateTint="#454545" />
+        </FrameLayout>
 
         <FrameLayout
             android:id="@+id/fr_ads"

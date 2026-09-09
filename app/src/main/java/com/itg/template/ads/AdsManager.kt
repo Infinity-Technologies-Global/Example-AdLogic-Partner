@@ -41,13 +41,13 @@ object AdsManager {
     val nativeWelcomeAdLive = MutableLiveData<ApNativeAd?>()
     val nativePermissionAdLive = MutableLiveData<ApNativeAd?>()
     val nativeHomeAdLive = MutableLiveData<ApNativeAd?>()
+    var interWelcomeAdLive = MutableLiveData<ApInterstitialAd?>()
     // Auto-resolve config for each loaded native ad
     private val adConfigMap = mutableMapOf<ApNativeAd, AdUnitConfig>()
     fun getAdConfig(ad: ApNativeAd): AdUnitConfig? = adConfigMap[ad]
 
     private var interSplashAd: ApInterstitialAd? = null
     private var interOnboarding: ApInterstitialAd? = null
-    private var interWelcomeAd: ApInterstitialAd? = null
 
     private var rewardExample :RewardedAd? = null
 
@@ -268,27 +268,52 @@ object AdsManager {
     }
 
     fun loadInterWelcome(context: Context, ignoreLimit: Boolean = false) {
+        val cached = interWelcomeAdLive.value?.takeIf { it.isReady }
+        val request = MutableLiveData<ApInterstitialAd?>()
+        interWelcomeAdLive = request
+        fun emit(ad: ApInterstitialAd?) {
+            request.value = ad
+        }
         val config = AdRemoteConfig.inter_welcome
         if (!config.isEnable
             || AppPurchase.getInstance().isPurchased(context)
-            || (!ignoreLimit)
+            || (!ignoreLimit && !ERainAd.getInstance()
+                .getShouldDisplayInterWelcomeBack(config.enableUaCheck))
         ) {
-            interWelcomeAd = null
+            emit(null)
             return
         }
-        interWelcomeAd =
-            ERainAd.getInstance().getInterstitialAds(context, config.id, object : AdCallback() {})
+        if (cached != null) {
+            emit(cached)
+            return
+        }
+        var loaded: ApInterstitialAd? = null
+        loaded = ERainAd.getInstance().getInterstitialAds(context, config.id, object : AdCallback() {
+            override fun onApInterstitialLoad(apInterstitialAd: ApInterstitialAd?) {
+                super.onApInterstitialLoad(apInterstitialAd)
+                emit(apInterstitialAd ?: loaded)
+            }
+
+            override fun onAdFailedToLoad(adError: LoadAdError?) {
+                super.onAdFailedToLoad(adError)
+                emit(null)
+            }
+        })
+        if (loaded?.isReady == true) emit(loaded)
     }
 
     fun showInterWelcome(context: Context, ignoreLimit: Boolean = false, onAction: () -> Unit) {
-        val interstitial = interWelcomeAd
+        val interstitial = interWelcomeAdLive.value
+        val allowShow = ignoreLimit || ERainAd.getInstance()
+            .getShouldDisplayInterWelcomeBack(AdRemoteConfig.inter_welcome.enableUaCheck)
         if (interstitial != null && interstitial.isReady && !AppPurchase.getInstance()
-                .isPurchased(context) && (ignoreLimit)
+                .isPurchased(context) && allowShow
         ) {
             ERainAd.getInstance()
                 .forceShowInterstitial(context, interstitial, object : AdCallback() {
                     override fun onNextAction() {
                         super.onNextAction()
+                        interWelcomeAdLive = MutableLiveData()
                         onAction()
                     }
                 }, false)
@@ -417,9 +442,9 @@ object AdsManager {
         nativeSurveyAdLive.postValue(null)
         nativeConfirmUninstallAdLive.postValue(null)
         nativeWelcomeAdLive.postValue(null)
+        interWelcomeAdLive = MutableLiveData()
         interSplashAd = null
         interOnboarding = null
-        interWelcomeAd = null
     }
 
     private fun Context.isNetworkAvailable(): Boolean {
