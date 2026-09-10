@@ -100,7 +100,7 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
 
     private fun checkRemoteConfigResult() {
         AdRemoteConfig.initialize(this, RemoteConfigUtils.getAdRemoteConfig())
-
+        loadNativeLanguage(this@SplashActivity, appSharedPref.firstLanguage, R.layout.layout_native_language)
         if (AdRemoteConfig.inter_splash.isEnable && isNetwork(this@SplashActivity)) {
             ERainAd.getInstance().loadSplashInterstitialAds(
                 this,
@@ -115,11 +115,6 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
 
                     override fun onAdLoaded() {
                         super.onAdLoaded()
-
-                        lifecycleScope.launch(Dispatchers.Main){
-                            loadNativeLanguage(this@SplashActivity, appSharedPref.firstLanguage, R.layout.layout_native_language)
-                        }
-
                     }
                 })
         } else {
