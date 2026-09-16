@@ -9,6 +9,7 @@ import com.itg.template.ui.component.main.MainActivity
 import com.itg.template.ui.component.onboarding.OnBoardingActivity
 import com.itg.template.ui.component.setting.SettingActivity
 import com.itg.template.ui.component.splash.SplashActivity
+import com.itg.template.ui.component.uninstall.ConfirmUninstallActivity
 import com.itg.template.ui.component.uninstall.SurveyActivity
 import com.itg.template.ui.component.welcome.WelcomeActivity
 import kotlin.jvm.java
@@ -36,6 +37,12 @@ object Routes {
 
     fun startSplashActivity(fromActivity: Activity) =
         Intent(fromActivity, SplashActivity::class.java).apply {
+            putExtra(AppConstants.KEY_TRACKING_SCREEN_FROM, fromActivity::class.java.simpleName)
+            fromActivity.startActivity(this)
+        }
+
+    fun startConfirmUninstallActivity(fromActivity: Activity) =
+        Intent(fromActivity, ConfirmUninstallActivity::class.java).apply {
             putExtra(AppConstants.KEY_TRACKING_SCREEN_FROM, fromActivity::class.java.simpleName)
             fromActivity.startActivity(this)
         }

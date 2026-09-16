@@ -4,7 +4,18 @@
     "isEnable": true,
     "enable_ua_check": false
   },
+  "inter_splash_uninstall": {
+    "id": "ca-app-pub-7208941695689653/1200371069",
+    "isEnable": true,
+    "enable_ua_check": false
+  },
   "banner_splash": {
+    "id": "ca-app-pub-7208941695689653/6261126058",
+    "isEnable": true,
+    "reloadIntervalSeconds": 30,
+    "enable_ua_check": false
+  },
+  "banner_splash_uninstall": {
     "id": "ca-app-pub-7208941695689653/6261126058",
     "isEnable": true,
     "reloadIntervalSeconds": 30,

@@ -129,8 +129,14 @@ data class AdRemoteConfig(
     val inter_splash: AdUnitConfig
         get() = getAdUnit("inter_splash")
 
+    val inter_splash_uninstall: AdUnitConfig
+        get() = getAdUnit("inter_splash_uninstall")
+
     val banner_splash: AdUnitConfig
         get() = getAdUnit("banner_splash")
+
+    val banner_splash_uninstall: AdUnitConfig
+        get() = getAdUnit("banner_splash_uninstall")
 
     val open_resume: AdUnitConfig
         get() = getAdUnit("open_resume")

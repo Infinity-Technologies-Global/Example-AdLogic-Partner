@@ -36,7 +36,7 @@ The following screens are already implemented and must preserve load/show behavi
 
 | Screen | Placements / behavior |
 | --- | --- |
-| Splash | `inter_splash`, preload `native_language`, `open_resume` config |
+| Splash | `inter_splash` / `inter_splash_uninstall`, `banner_splash` / `banner_splash_uninstall`, preload `native_language`, `open_resume` config |
 | Language | Native language/click, preload onboarding page 1, DevSetting (`tvTitle`) |
 | Onboarding | Native page 1 & 4, native full, `inter_onboarding`, uninstall widget |
 | Welcome / Resume | `native_welcome`, `inter_welcome`, `ResumeAdsEntryRule` |
@@ -154,9 +154,15 @@ private fun initAds() {
 
 ### 2.1 Splash
 - Inter Splash:
-  - Condition: `AdRemoteConfig.inter_splash.isEnable == true` and network available.
+  - Normal app open: `AdRemoteConfig.inter_splash`.
+  - Uninstall ShortCut: `AdRemoteConfig.inter_splash_uninstall`.
+  - Condition: `isEnable == true` and network available.
   - API: `ERainAd.getInstance().loadSplashInterstitialAds(...)`.
-  - On successful load (`onAdLoaded`), preload `native_language`.
+  - On successful load (`onAdLoaded`), preload `native_language` (skip preload when entering from Uninstall ShortCut).
+- Banner Splash:
+  - Normal app open: `AdRemoteConfig.banner_splash`.
+  - Uninstall ShortCut: `AdRemoteConfig.banner_splash_uninstall`.
+  - Loaded via `AdsManager.loadBanner(...)` into Splash `fr_banner`.
 - Open Resume:
   - Enabled/disabled by `ResumeAdsEntryRule.shouldEnableOpenResume()`.
 
@@ -184,6 +190,16 @@ private fun initAds() {
 - `AdsManager.loadBanner(..., isCollapse = false)` => normal banner.
 - `AdsManager.loadBanner(..., isCollapse = true)` => collapsible banner (SDK expand/collapse behavior).
 - Reload interval follows `reloadIntervalSeconds`.
+
+### 2.6 ShortCut config + load Ads
+- **Enable/disable only via Remote Config**: do not hard-code shortcut creation. Example for Uninstall ShortCut: flag `on_enable_uninstall_widget` (`RemoteConfigUtils.getOnEnableUninstallWidget()`), combined with `ERainAd.getInstance().getShouldDisplayWidgetUninstall(...)` before `ShortcutManager.initShortCut(...)`.
+- **Uninstall ShortCut — required flow**:
+  1. User taps shortcut → open `SplashActivity` (with `FROM_SHORTCUT = ACTION_OPEN_UNINSTALL`).
+  2. Splash loads **2 dedicated uninstall-flow ad placements** (UA via each placement’s `enable_ua_check`):
+     - Inter: `inter_splash_uninstall`
+     - Banner: `banner_splash_uninstall`
+  3. After Splash → `ConfirmUninstallActivity` → continue Survey / Settings as the current uninstall action.
+- **Other feature ShortCuts**: destination is **dynamic per UA requirements** — may open the feature screen directly, or must go through Splash first then the target screen (depending on UA brief / Remote Config per app).
 
 ## 3. Global conditions for loading ads
 

@@ -36,7 +36,7 @@
 
 | Screen | Placements / behavior |
 | --- | --- |
-| Splash | `inter_splash`, preload `native_language`, `open_resume` config |
+| Splash | `inter_splash` / `inter_splash_uninstall`, `banner_splash` / `banner_splash_uninstall`, preload `native_language`, `open_resume` config |
 | Language | Native language/click, preload onboarding page 1, DevSetting (`tvTitle`) |
 | Onboarding | Native page 1 & 4, native full, `inter_onboarding`, uninstall widget |
 | Welcome / Resume | `native_welcome`, `inter_welcome`, `ResumeAdsEntryRule` |
@@ -154,9 +154,15 @@ private fun initAds() {
 
 ### 2.1 Splash
 - Inter Splash:
-  - Condition: `AdRemoteConfig.inter_splash.isEnable == true` और network available
+  - Normal app open: `AdRemoteConfig.inter_splash`
+  - Uninstall ShortCut: `AdRemoteConfig.inter_splash_uninstall`
+  - Condition: `isEnable == true` और network available
   - API: `ERainAd.getInstance().loadSplashInterstitialAds(...)`
-  - successful load (`onAdLoaded`) के बाद `native_language` preload
+  - successful load (`onAdLoaded`) के बाद `native_language` preload (Uninstall ShortCut से आने पर preload skip)
+- Banner Splash:
+  - Normal app open: `AdRemoteConfig.banner_splash`
+  - Uninstall ShortCut: `AdRemoteConfig.banner_splash_uninstall`
+  - Splash `fr_banner` में `AdsManager.loadBanner(...)` से load
 - Open Resume:
   - `ResumeAdsEntryRule.shouldEnableOpenResume()` से enable/disable
 
@@ -184,6 +190,16 @@ private fun initAds() {
 - `AdsManager.loadBanner(..., isCollapse = false)` => normal banner
 - `AdsManager.loadBanner(..., isCollapse = true)` => collapsible banner (SDK expand/collapse behavior)
 - Reload interval: `reloadIntervalSeconds`
+
+### 2.6 ShortCut config + load Ads
+- **Enable/disable केवल Remote Config से**: app में shortcut creation hard-code न करें। Uninstall ShortCut उदाहरण: flag `on_enable_uninstall_widget` (`RemoteConfigUtils.getOnEnableUninstallWidget()`), और `ShortcutManager.initShortCut(...)` से पहले `ERainAd.getInstance().getShouldDisplayWidgetUninstall(...)`।
+- **Uninstall ShortCut — required flow**:
+  1. User shortcut tap → `SplashActivity` open (`FROM_SHORTCUT = ACTION_OPEN_UNINSTALL`).
+  2. Splash **uninstall flow के 2 dedicated ad placements** load करता है (हर placement का UA: `enable_ua_check`):
+     - Inter: `inter_splash_uninstall`
+     - Banner: `banner_splash_uninstall`
+  3. Splash के बाद → `ConfirmUninstallActivity` → मौजूदा uninstall action के अनुसार Survey / Settings जारी।
+- **अन्य feature ShortCuts**: destination **UA requirements के अनुसार dynamic** — सीधे feature screen खोल सकते हैं, या पहले Splash फिर target screen (app के UA brief / Remote Config पर निर्भर)।
 
 ## 3. Global conditions for loading ads
 

@@ -31,7 +31,7 @@ Các màn sau đã được implement đầy đủ; đối tác **phải giữ n
 
 | Màn hình | Placement / hành vi |
 | --- | --- |
-| Splash | `inter_splash`, preload `native_language`, cấu hình `open_resume` |
+| Splash | `inter_splash` / `inter_splash_uninstall`, `banner_splash` / `banner_splash_uninstall`, preload `native_language`, cấu hình `open_resume` |
 | Language | Native language / click, preload onboarding page 1, DevSetting (`tvTitle`) |
 | Onboarding | Native page 1 & 4, native full, `inter_onboarding`, widget uninstall |
 | Welcome / Resume | `native_welcome`, `inter_welcome`, rule `ResumeAdsEntryRule` |
@@ -148,9 +148,15 @@ private fun initAds() {
 
 ### 2.1 Splash
 - Inter Splash:
-  - Điều kiện: `AdRemoteConfig.inter_splash.isEnable == true` và có mạng.
+  - Mở app thường: `AdRemoteConfig.inter_splash`.
+  - ShortCut Uninstall: `AdRemoteConfig.inter_splash_uninstall`.
+  - Điều kiện: `isEnable == true` và có mạng.
   - API: `ERainAd.getInstance().loadSplashInterstitialAds(...)`.
-  - Sau khi load thành công (`onAdLoaded`) thì preload `native_language`.
+  - Sau khi load thành công (`onAdLoaded`) thì preload `native_language` (không preload khi vào từ ShortCut Uninstall).
+- Banner Splash:
+  - Mở app thường: `AdRemoteConfig.banner_splash`.
+  - ShortCut Uninstall: `AdRemoteConfig.banner_splash_uninstall`.
+  - Load bằng `AdsManager.loadBanner(...)` vào `fr_banner` trên Splash.
 - Open Resume:
   - Bật/tắt theo `ResumeAdsEntryRule.shouldEnableOpenResume()`.
 
@@ -178,6 +184,16 @@ private fun initAds() {
 - `AdsManager.loadBanner(..., isCollapse = false)` => banner thường.
 - `AdsManager.loadBanner(..., isCollapse = true)` => collapsible banner (expand/collapse theo SDK).
 - Reload theo `reloadIntervalSeconds`.
+
+### 2.6 ShortCut config + load Ads
+- **Enable/disable chỉ theo Remote Config**: không hard-code bật shortcut trong app. Ví dụ ShortCut Uninstall dùng flag `on_enable_uninstall_widget` (`RemoteConfigUtils.getOnEnableUninstallWidget()`), kết hợp `ERainAd.getInstance().getShouldDisplayWidgetUninstall(...)` trước khi `ShortcutManager.initShortCut(...)`.
+- **ShortCut Uninstall — flow bắt buộc**:
+  1. User bấm shortcut → mở `SplashActivity` (kèm `FROM_SHORTCUT = ACTION_OPEN_UNINSTALL`).
+  2. Splash load **2 vị trí Ads riêng cho luồng uninstall** (UA theo `enable_ua_check` của từng placement):
+     - Inter: `inter_splash_uninstall`
+     - Banner: `banner_splash_uninstall`
+  3. Sau Splash → `ConfirmUninstallActivity` → tiếp tục Survey / Settings như action uninstall hiện tại.
+- **ShortCut tính năng khác**: destination **dynamic theo yêu cầu UA** — có thể vào thẳng màn tính năng, hoặc bắt buộc qua Splash rồi mới tới màn đích (tùy brief UA / Remote Config của từng app).
 
 ## 3. Điều kiện chung để Ads được load
 
