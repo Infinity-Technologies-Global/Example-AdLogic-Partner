@@ -19,12 +19,14 @@ import com.itg.template.ads.inter_splash_uninstall
 import com.itg.template.ads.open_resume
 import com.itg.template.app.AppConstants
 import com.itg.template.app.ResumeAdsEntryRule
+import com.itg.template.data.event.EventTracking
 import com.itg.template.databinding.ActivitySplashBinding
 import com.itg.template.ui.bases.BaseActivity
 import com.itg.template.ui.bases.ConsentHandler
 import com.itg.template.ui.bases.ext.goneView
 import com.itg.template.ui.bases.ext.isNetwork
 import com.itg.template.ui.bases.ext.visibleView
+import com.itg.template.utils.ITGTrackingHelper
 import com.itg.template.utils.Routes
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -47,6 +49,7 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
     override fun initViews() {
         super.initViews()
 
+        ITGTrackingHelper.logEvent(EventTracking.SPLASH,null)
         RemoteConfigUtils.init(this, this)
         consentHandler = ConsentHandler(
             activity = this,
@@ -101,6 +104,7 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
 
 
     private fun checkRemoteConfigResult() {
+        ITGTrackingHelper.logEvent(EventTracking.REQUEST_AD,null)
         AdRemoteConfig.initialize(this, RemoteConfigUtils.getAdRemoteConfig())
         loadSplashBanner()
         if (!isFromUninstallShortcut) {
@@ -124,11 +128,13 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
                 object : AdCallback() {
                     override fun onNextAction() {
                         super.onNextAction()
+                        ITGTrackingHelper.logEvent(EventTracking.SPLASH_USER_CLOSE_AD,null)
                         moveActivity()
                     }
 
                     override fun onAdLoaded() {
                         super.onAdLoaded()
+                        ITGTrackingHelper.logEvent(EventTracking.SPLASH_AD_LOAD,null)
                     }
                 })
         } else {

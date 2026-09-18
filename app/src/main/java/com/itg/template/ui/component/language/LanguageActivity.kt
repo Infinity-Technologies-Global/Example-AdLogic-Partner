@@ -11,6 +11,7 @@ import com.itg.template.ads.RemoteConfigUtils
 import com.itg.template.ads.populateNativeAdView
 import com.itg.template.app.AppConstants
 import com.itg.template.app.AppConstants.DEFAULT_TIME_DELAY_SHOW_LANGUAGE_DONE_BUTTON
+import com.itg.template.data.event.EventTracking
 import com.itg.template.databinding.ActivityLanguageBinding
 import com.itg.template.ui.bases.BaseActivity
 import com.itg.template.ui.bases.ext.click
@@ -19,6 +20,7 @@ import com.itg.template.ui.bases.ext.isNetwork
 import com.itg.template.ui.bases.ext.visibleView
 import com.itg.template.ui.component.language.adapter.LanguageAdapter
 import com.itg.template.ui.component.language.data.LanguageData
+import com.itg.template.utils.ITGTrackingHelper
 import com.itg.template.utils.Routes
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -43,6 +45,7 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding>() {
     private val languageAdapter: LanguageAdapter by lazy {
         LanguageAdapter(
             onItemLanguageClick = {
+                ITGTrackingHelper.logEvent(EventTracking.LANGUAGE_CLICK,null)
                 listenLanguageClickAd()
                 delayShowDoneButton()
                 selectedIso = it.iso
@@ -53,6 +56,7 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding>() {
     }
 
     override fun initViews() {
+        ITGTrackingHelper.logEvent(EventTracking.LANGUAGE_FIRST,null)
         isFromSetting = intent.getBooleanExtra(EXTRA_FROM_SETTING, false)
         mBinding.tvTitle.setOnAdminAdToggleListener(){
             Routes.startSplashActivity(this@LanguageActivity)
