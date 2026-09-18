@@ -14,32 +14,29 @@
             android:src="@mipmap/ic_launcher" />
 
         <TextView
-            android:textSize="@dimen/_18ssp"
-            android:fontFamily="@font/medium"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/app_name"
-            android:layout_marginTop="@dimen/_15sdp"
-            android:textColor="@color/black"
+            android:layout_below="@id/img_splash"
             android:layout_centerHorizontal="true"
-            android:layout_below="@id/img_splash"/>
+            android:layout_marginTop="@dimen/_15sdp"
+            android:fontFamily="@font/medium"
+            android:text="@string/app_name"
+            android:textColor="@color/black"
+            android:textSize="@dimen/_18ssp" />
 
         <androidx.media3.ui.PlayerView
-            android:visibility="gone"
             android:id="@+id/player_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:use_controller="false"
-            app:resize_mode="zoom" />
+            android:visibility="gone"
+            app:resize_mode="zoom"
+            app:use_controller="false" />
 
         <com.airbnb.lottie.LottieAnimationView
             android:layout_width="100dp"
             android:layout_height="100dp"
             android:layout_above="@+id/txtAds"
             android:layout_centerHorizontal="true"
-            app:layout_constraintBottom_toTopOf="@id/txtAds"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
             app:lottie_autoPlay="true"
             app:lottie_loop="true"
             app:lottie_rawRes="@raw/loading_blue3" />
@@ -48,14 +45,24 @@
             android:id="@+id/txtAds"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:layout_marginBottom="32dp"
+            android:layout_above="@id/fr_banner"
+            android:layout_marginBottom="16dp"
             android:gravity="center"
             android:text="@string/ads_are_about_to_be_shown"
             android:textColor="@color/black"
-            android:textSize="16sp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
+            android:textSize="16sp" />
+
+        <FrameLayout
+            android:id="@+id/fr_banner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true">
+
+            <include
+                android:id="@+id/include_banner"
+                layout="@layout/layout_banner_control"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </FrameLayout>
     </RelativeLayout>
 </layout>

@@ -9,23 +9,22 @@ import android.os.Build
 import com.itg.template.R
 import com.itg.template.app.AppConstants
 import com.itg.template.ui.bases.ext.getSystemLocaleString
-import kotlin.apply
-import kotlin.jvm.java
+import com.itg.template.ui.component.splash.SplashActivity
 
 object ShortcutManager {
-    fun initShortCut(context : Context) {
+    fun initShortCut(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
             val manager = context.getSystemService(ShortcutManager::class.java)
             try {
                 manager.removeAllDynamicShortcuts()
-                val uninstallShortCut = ShortcutInfo.Builder(context, "ACTION_OPEN_UNINSTALL")
+                val uninstallShortCut = ShortcutInfo.Builder(context, AppConstants.ACTION_OPEN_UNINSTALL)
                     .setShortLabel(context.getSystemLocaleString(R.string.txt_uninstall))
                     .setIcon(Icon.createWithResource(context, R.drawable.ic_uninstall))
-                    .setIntent(Intent(context, ConfirmUninstallActivity::class.java).apply {
+                    .setIntent(Intent(context, SplashActivity::class.java).apply {
                         flags =
                             Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                         action = "android.intent.action.SHORTCUT_UNINSTALL_APP"
-                        putExtra(AppConstants.FROM_SHORTCUT, "ACTION_OPEN_UNINSTALL")
+                        putExtra(AppConstants.FROM_SHORTCUT, AppConstants.ACTION_OPEN_UNINSTALL)
                     })
                     .setRank(1)
                     .build()

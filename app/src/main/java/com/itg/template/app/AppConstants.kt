@@ -17,6 +17,7 @@ object AppConstants {
     internal const val KEY_FIRST_ONBOARDING = "KEY_FIRST_ONBOARDING"
 
     internal const val FROM_SHORTCUT = "from_shortcut"
+    internal const val ACTION_OPEN_UNINSTALL = "ACTION_OPEN_UNINSTALL"
     internal const val KEY_SETTING = "KEY_SETTING"
     const val DEFAULT_TIME_DELAY_SHOW_LANGUAGE_DONE_BUTTON = 2000L
     const val DEFAULT_TIME_DELAY_LOAD_INTER_WELCOME = 500L

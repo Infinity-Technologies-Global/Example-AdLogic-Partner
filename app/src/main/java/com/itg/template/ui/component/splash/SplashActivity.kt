@@ -2,7 +2,6 @@ package com.itg.template.ui.component.splash
 
 import android.os.CountDownTimer
 import androidx.core.net.toUri
-import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import com.ads.module.admob.AppOpenManager
@@ -10,23 +9,26 @@ import com.ads.module.ads.ERainAd
 import com.ads.module.funtion.AdCallback
 import com.itg.template.R
 import com.itg.template.ads.AdRemoteConfig
+import com.itg.template.ads.AdsManager
 import com.itg.template.ads.AdsManager.loadNativeLanguage
 import com.itg.template.ads.RemoteConfigUtils
+import com.itg.template.ads.banner_splash
+import com.itg.template.ads.banner_splash_uninstall
 import com.itg.template.ads.inter_splash
+import com.itg.template.ads.inter_splash_uninstall
 import com.itg.template.ads.open_resume
 import com.itg.template.app.AppConstants
 import com.itg.template.app.ResumeAdsEntryRule
+import com.itg.template.data.event.EventTracking
 import com.itg.template.databinding.ActivitySplashBinding
 import com.itg.template.ui.bases.BaseActivity
 import com.itg.template.ui.bases.ConsentHandler
 import com.itg.template.ui.bases.ext.goneView
 import com.itg.template.ui.bases.ext.isNetwork
 import com.itg.template.ui.bases.ext.visibleView
+import com.itg.template.utils.ITGTrackingHelper
 import com.itg.template.utils.Routes
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-
 
 @AndroidEntryPoint
 class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.Listener {
@@ -39,12 +41,15 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
 
     private val uriVideo = "asset:///video_splash.mp4".toUri()
     private val isHasVideo = false
+    private val isFromUninstallShortcut: Boolean
+        get() = intent.getStringExtra(AppConstants.FROM_SHORTCUT) == AppConstants.ACTION_OPEN_UNINSTALL
 
     override fun getLayoutActivity() = R.layout.activity_splash
 
     override fun initViews() {
         super.initViews()
 
+        ITGTrackingHelper.logEvent(EventTracking.SPLASH,null)
         RemoteConfigUtils.init(this, this)
         consentHandler = ConsentHandler(
             activity = this,
@@ -99,22 +104,37 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
 
 
     private fun checkRemoteConfigResult() {
+        ITGTrackingHelper.logEvent(EventTracking.REQUEST_AD,null)
         AdRemoteConfig.initialize(this, RemoteConfigUtils.getAdRemoteConfig())
-        loadNativeLanguage(this@SplashActivity, appSharedPref.firstLanguage, R.layout.layout_native_language)
-        if (AdRemoteConfig.inter_splash.isEnable && isNetwork(this@SplashActivity)) {
+        loadSplashBanner()
+        if (!isFromUninstallShortcut) {
+            loadNativeLanguage(
+                this@SplashActivity,
+                appSharedPref.firstLanguage,
+                R.layout.layout_native_language
+            )
+        }
+        val splashInterConfig = if (isFromUninstallShortcut) {
+            AdRemoteConfig.inter_splash_uninstall
+        } else {
+            AdRemoteConfig.inter_splash
+        }
+        if (splashInterConfig.isEnable && isNetwork(this@SplashActivity)) {
             ERainAd.getInstance().loadSplashInterstitialAds(
                 this,
-                AdRemoteConfig.inter_splash.id,
+                splashInterConfig.id,
                 30000,
                 5000,
                 object : AdCallback() {
                     override fun onNextAction() {
                         super.onNextAction()
+                        ITGTrackingHelper.logEvent(EventTracking.SPLASH_USER_CLOSE_AD,null)
                         moveActivity()
                     }
 
                     override fun onAdLoaded() {
                         super.onAdLoaded()
+                        ITGTrackingHelper.logEvent(EventTracking.SPLASH_AD_LOAD,null)
                     }
                 })
         } else {
@@ -129,12 +149,28 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
         }
     }
 
+    private fun loadSplashBanner() {
+        val bannerConfig = if (isFromUninstallShortcut) {
+            AdRemoteConfig.banner_splash_uninstall
+        } else {
+            AdRemoteConfig.banner_splash
+        }
+        AdsManager.loadBanner(
+            this,
+            bannerConfig,
+            mBinding.frBanner,
+            isCollapse = false
+        )
+    }
+
     private fun moveActivity() {
         stopVideo()
-        if (shouldShowLanguageNextTime() || appSharedPref.firstOnBoarding)
-            Routes.startLanguageActivity(this, null)
-        else
-            Routes.startMainActivity(this)
+        when {
+            isFromUninstallShortcut -> Routes.startConfirmUninstallActivity(this)
+            shouldShowLanguageNextTime() || appSharedPref.firstOnBoarding ->
+                Routes.startLanguageActivity(this, null)
+            else -> Routes.startMainActivity(this)
+        }
         finish()
     }
 

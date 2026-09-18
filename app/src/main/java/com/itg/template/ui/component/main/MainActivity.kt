@@ -48,6 +48,7 @@ import com.itg.template.utils.ITGTrackingHelper
 import com.itg.template.utils.Routes
 import com.itg.template.app.ResumeAdsEntryRule
 import com.itg.template.app.ResumeAdsEntryMode
+import com.itg.template.data.event.EventTracking
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 
@@ -75,6 +76,7 @@ class MainActivity : BaseActivityWithBanner<ActivityMainBinding>() {
 
     override fun initViews() {
         super.initViews()
+        ITGTrackingHelper.logEvent(EventTracking.HOME_SCREEN,null)
         noInternetDialog = NoInternetDialog(this)
         forceUpdateDialog = ForceUpdateDialog(this)
         checkInternet()

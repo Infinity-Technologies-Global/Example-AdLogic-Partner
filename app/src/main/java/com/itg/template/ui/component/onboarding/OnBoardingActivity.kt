@@ -13,6 +13,7 @@ import com.itg.template.ads.AdsManager
 import com.itg.template.ads.RemoteConfigUtils
 import com.itg.template.ads.native_confirm_uninstall
 import com.itg.template.ads.native_onboarding_fullscreen_1_3
+import com.itg.template.data.event.EventTracking
 import com.itg.template.databinding.ActivityOnboardingBinding
 import com.itg.template.ui.bases.BaseActivity
 import com.itg.template.ui.bases.ext.isNetwork
@@ -20,6 +21,7 @@ import com.itg.template.ui.component.onboarding.adapter.OnboardingAdapter
 import com.itg.template.ui.component.onboarding.model.OnboardingItem
 import com.itg.template.ui.component.onboarding.viewmodel.OnboardingViewModel
 import com.itg.template.ui.component.uninstall.ShortcutManager
+import com.itg.template.utils.ITGTrackingHelper
 import com.itg.template.utils.Routes
 import dagger.hilt.android.AndroidEntryPoint
 import kotlin.math.abs
@@ -93,7 +95,17 @@ class OnBoardingActivity : BaseActivity<ActivityOnboardingBinding>() {
         mBinding.viewPager.setPageTransformer(compositePageTransformer)
 
         mBinding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {}
+            override fun onPageSelected(position: Int) {
+                ITGTrackingHelper.logEvent(when(position){
+                    0 -> { EventTracking.ONBOARDING_FIRST}
+                    1 -> { EventTracking.ONBOARDING_SECOND}
+                    2 -> { EventTracking.ONBOARDING_FULL1}
+                    3 -> { EventTracking.ONBOARDING_THIRD}
+                    4 -> { EventTracking.ONBOARDING_FULL2}
+                    5 -> { EventTracking.ONBOARDING_4th}
+                    else -> EventTracking.ONBOARDING_FIRST
+                }, null)
+            }
         })
     }
 

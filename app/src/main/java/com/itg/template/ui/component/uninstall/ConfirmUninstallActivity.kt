@@ -15,7 +15,7 @@ import com.itg.template.utils.Routes
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class ConfirmUninstallActivity : BaseActivity<ActivityConfirmUninstallBinding>(){
+class ConfirmUninstallActivity : BaseActivity<ActivityConfirmUninstallBinding>() {
 
     override fun getLayoutActivity() = R.layout.activity_confirm_uninstall
 
