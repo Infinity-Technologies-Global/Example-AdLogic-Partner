@@ -88,7 +88,7 @@ class GlobalApp : AdsMultiDexApplication() {
         ERainAd.getInstance().init(this, mERainAdConfig)
 
         Admob.getInstance().setDisableAdResumeWhenClickAds(true)
-        Admob.getInstance().setOpenActivityAfterShowInterAds(true)
+        Admob.getInstance().setOpenActivityAfterShowInterAds(false)
         AppOpenManager.getInstance().disableAppResumeWithActivity(SplashActivity::class.java)
         AppOpenManager.getInstance().disableAppResumeWithActivity(LanguageActivity::class.java)
         AppOpenManager.getInstance().disableAppResumeWithActivity(OnBoardingActivity::class.java)
