@@ -83,7 +83,7 @@
 
             <include
                 android:id="@+id/shimmerAds"
-                layout="@layout/layout_shimmer_native_language"
+                layout="@layout/layout_shimmer_native_small"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
         </FrameLayout>
