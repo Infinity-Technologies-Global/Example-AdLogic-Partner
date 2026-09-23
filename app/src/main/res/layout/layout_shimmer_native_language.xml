@@ -87,21 +87,33 @@
             android:id="@+id/ad_body"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="13dp"
             android:background="@drawable/bg_ad_icon"
             android:backgroundTint="#E6E9EE"
-            android:paddingVertical="3dp"
             android:textColor="#000000"
             android:textSize="12dp"
             app:layout_constraintEnd_toEndOf="@id/ad_advertiser"
             app:layout_constraintStart_toStartOf="@id/ad_app_icon"
             app:layout_constraintTop_toBottomOf="@id/ad_advertiser" />
 
+        <com.google.android.gms.ads.nativead.MediaView
+            android:id="@+id/ad_media"
+            android:layout_width="match_parent"
+            android:layout_height="120dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginHorizontal="8dp"
+            android:layout_marginTop="9dp"
+            android:background="@drawable/bg_conner_home"
+            android:backgroundTint="#E6E9EE"
+            android:clipToOutline="true"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/ad_body" />
+
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/ad_call_to_action"
             android:layout_width="0dp"
             android:layout_height="40dp"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="13dp"
             android:layout_marginBottom="10dp"
             android:background="@drawable/button_ok"
             app:backgroundTint="#E6E9EE"
@@ -112,6 +124,6 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="@id/ad_body"
             app:layout_constraintStart_toStartOf="@id/ad_body"
-            app:layout_constraintTop_toBottomOf="@id/ad_body" />
+            app:layout_constraintTop_toBottomOf="@id/ad_media" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 </com.facebook.shimmer.ShimmerFrameLayout>

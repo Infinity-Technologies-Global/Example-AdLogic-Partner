@@ -406,6 +406,8 @@
                         android:visibility="gone" />
 
                     <com.facebook.shimmer.ShimmerFrameLayout
+                        app:shimmer_base_alpha="1"
+                        app:shimmer_highlight_alpha="1"
                         android:id="@+id/shimmer_native_small"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -450,6 +452,8 @@
                         android:visibility="gone" />
 
                     <com.facebook.shimmer.ShimmerFrameLayout
+                        app:shimmer_base_alpha="1"
+                        app:shimmer_highlight_alpha="1"
                         android:id="@+id/shimmer_native_full"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -779,6 +783,8 @@
                         android:visibility="gone" />
 
                     <com.facebook.shimmer.ShimmerFrameLayout
+                        app:shimmer_base_alpha="1"
+                        app:shimmer_highlight_alpha="1"
                         android:id="@+id/shimmer_customization_preview"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

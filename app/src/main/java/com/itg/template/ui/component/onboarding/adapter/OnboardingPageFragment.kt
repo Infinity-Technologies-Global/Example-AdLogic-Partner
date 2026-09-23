@@ -45,6 +45,11 @@ class OnboardingPageFragment : BaseFragment<FragmentOnboardingPageBinding>() {
             onboardingItem = it
         }
         updateLayout()
+        if (onboardingItem.isHasNativeFull) {
+            mBinding.layoutAdsFull.visibleView()
+        } else {
+            mBinding.layoutAdsFull.invisibleView()
+        }
     }
 
     override fun observerData() {
@@ -60,7 +65,7 @@ class OnboardingPageFragment : BaseFragment<FragmentOnboardingPageBinding>() {
         val liveData: MutableLiveData<ApNativeAd?> = when {
             onboardingItem.isHasNativeOnPage1 -> AdsManager.nativeOnboarding1AdLive
             onboardingItem.isHasNativeOnPage4 -> AdsManager.nativeOnboarding4AdLive
-            onboardingItem.isHasNativeFull    -> AdsManager.nativeAdOnBoardingFullLive
+            onboardingItem.isHasNativeFull -> AdsManager.nativeAdOnBoardingFullLive
             else -> {
                 renderNoAd()
                 return
