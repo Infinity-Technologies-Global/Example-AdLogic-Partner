@@ -144,6 +144,17 @@ private fun initAds() {
 
 > Lưu ý: `initAdRemoteConfig()` vẫn cần gọi trước `initAds()`, và config remote vẫn được đồng bộ lại ở `SplashActivity` qua `RemoteConfigUtils.init(...)` + `AdRemoteConfig.initialize(...)`.
 
+## Tích hợp consent
+
+Base dùng `Module-Update-GDPR` thông qua `ConsentHandler`; `gdprModuleVersion` trong `DevConfig.init()` chỉ hiển thị phiên bản module, không khởi chạy luồng consent.
+
+1. Đảm bảo project đã khai báo repository JitPack, đặt `module_update_gdpr_version` trong file versions dùng chung và thêm `implementation "com.github.Infinity-Technologies-Global:Module-Update-GDPR:$module_update_gdpr_version"` vào `app/build.gradle`.
+2. Khai báo `buildConfigField "String", "GDPR_MODULE_VERSION", "\"$module_update_gdpr_version\""` cho cả `debug` và `release`; nếu dùng DevConfig, truyền `BuildConfig.GDPR_MODULE_VERSION` vào `DevConfig.init()`.
+3. Tại Splash, tạo `ConsentHandler` với preferences của app và tiếp tục flow hiện có từ `onConsentFlowCompleted` (trong base là `loadingRemoteConfig()`). Chỉ request consent khi `!isConfirmConsent && !isUserGlobal && isNetwork()`; nếu không thì tiếp tục ngay. Gọi `clear()` trong `onDestroy()` hiện có của Activity.
+4. Giữ trạng thái preferences `isConfirmConsent` và `isUserGlobal`. Nếu tích hợp thêm flow Main như base, port cả Remote Config gate `on_show_dialog_consent` và callback điều hướng; không chạy đồng thời nhiều request.
+
+Trước khi release, xác minh AdMob application ID và cấu hình Privacy & messaging của app đối tác. Lỗi/timeout chỉ là fallback để tiếp tục flow, không chứng minh người dùng đã consent hoặc cho phép quảng cáo cá nhân hóa. Đối chiếu yêu cầu Google UMP hiện hành (gồm `canRequestAds()` và privacy options nếu bắt buộc) với nhóm phụ trách consent module. Xem [`ConsentHandler.kt`](app/src/main/java/com/itg/template/ui/bases/ConsentHandler.kt) và [hướng dẫn Google UMP](https://developers.google.com/admob/android/privacy).
+
 ## 2. Cơ chế load/show Ads theo vị trí
 
 ### 2.1 Splash

@@ -150,6 +150,17 @@ private fun initAds() {
 
 > Note: `initAdRemoteConfig()` को `initAds()` से पहले call करना चाहिए, और remote config sync फिर भी `SplashActivity` में `RemoteConfigUtils.init(...)` + `AdRemoteConfig.initialize(...)` से होता है।
 
+## Consent integration
+
+Base में `ConsentHandler` के जरिए `Module-Update-GDPR` इस्तेमाल होता है। `DevConfig.init()` का `gdprModuleVersion` केवल module version दिखाता है; यह consent flow शुरू नहीं करता।
+
+1. Project repositories में JitPack सुनिश्चित करें, shared versions file में `module_update_gdpr_version` सेट करें, और `app/build.gradle` में `implementation "com.github.Infinity-Technologies-Global:Module-Update-GDPR:$module_update_gdpr_version"` जोड़ें।
+2. `debug` और `release`, दोनों में `buildConfigField "String", "GDPR_MODULE_VERSION", "\"$module_update_gdpr_version\""` घोषित करें। DevConfig इस्तेमाल हो तो `BuildConfig.GDPR_MODULE_VERSION` को `DevConfig.init()` में दें।
+3. Splash में app preferences के साथ `ConsentHandler` बनाएं और `onConsentFlowCompleted` से मौजूदा flow जारी रखें (इस base में `loadingRemoteConfig()`)। Consent केवल `!isConfirmConsent && !isUserGlobal && isNetwork()` पर request करें; अन्यथा तुरंत आगे बढ़ें। Activity के मौजूदा `onDestroy()` में `clear()` call करें।
+4. `isConfirmConsent` और `isUserGlobal` preference state बनाए रखें। Base का वैकल्पिक Main flow अपनाने पर `on_show_dialog_consent` Remote Config gate और navigation callbacks भी port करें; एक साथ duplicate requests न चलाएं।
+
+Release से पहले partner app का AdMob application ID और Privacy & messaging setup जांचें। Error/timeout केवल flow fallback हैं—ये consent या personalized ads की अनुमति का प्रमाण नहीं हैं। Consent module owner के साथ वर्तमान Google UMP requirements (`canRequestAds()` और जरूरत पड़ने पर privacy options सहित) जांचें। [`ConsentHandler.kt`](app/src/main/java/com/itg/template/ui/bases/ConsentHandler.kt) और [Google UMP guidance](https://developers.google.com/admob/android/privacy) देखें।
+
 ## 2. Load/Show Ads by placement
 
 ### 2.1 Splash

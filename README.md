@@ -150,6 +150,17 @@ private fun initAds() {
 
 > Note: `initAdRemoteConfig()` should still run before `initAds()`, and remote config is still synced in `SplashActivity` via `RemoteConfigUtils.init(...)` + `AdRemoteConfig.initialize(...)`.
 
+## Consent integration
+
+The base uses `Module-Update-GDPR` through `ConsentHandler`; `gdprModuleVersion` in `DevConfig.init()` only displays the module version and does not start consent collection.
+
+1. Ensure JitPack is configured in the project repositories, set `module_update_gdpr_version` in the shared versions file, and add `implementation "com.github.Infinity-Technologies-Global:Module-Update-GDPR:$module_update_gdpr_version"` to `app/build.gradle`.
+2. Declare `buildConfigField "String", "GDPR_MODULE_VERSION", "\"$module_update_gdpr_version\""` in both `debug` and `release`; pass `BuildConfig.GDPR_MODULE_VERSION` to `DevConfig.init()` if using DevConfig.
+3. In Splash, create `ConsentHandler` with the app's preferences and continue the existing flow from `onConsentFlowCompleted` (in this base, `loadingRemoteConfig()`). Request consent only when `!isConfirmConsent && !isUserGlobal && isNetwork()`; otherwise continue immediately. Call `clear()` from the Activity's existing `onDestroy()`.
+4. Preserve the `isConfirmConsent` and `isUserGlobal` preference state. If adopting the base's optional Main flow, also port its `on_show_dialog_consent` Remote Config gate and navigation callbacks; do not issue duplicate simultaneous requests.
+
+Before release, verify the partner app's AdMob application ID and Privacy & messaging setup. Treat errors/timeouts as flow fallbacks, not proof of consent or permission for personalized ads. Check current Google UMP requirements (including `canRequestAds()` and privacy options when required) with the consent-module owner. See [`ConsentHandler.kt`](app/src/main/java/com/itg/template/ui/bases/ConsentHandler.kt) and [Google UMP guidance](https://developers.google.com/admob/android/privacy).
+
 ## 2. Load/Show Ads by placement
 
 ### 2.1 Splash
