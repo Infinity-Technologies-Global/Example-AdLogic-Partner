@@ -104,7 +104,7 @@
     "colorCTA": "default",
     "heightCTA": 45,
     "positionCTA": "BOTTOM",
-    "components": ["icon_headline", "body", "media", "cta"],
+    "components": ["media", "icon_headline","body","cta"],
     "enable_ua_check": true
   },
   "native_onboarding_fullscreen_2_3": {
@@ -113,7 +113,7 @@
     "colorCTA": "default",
     "heightCTA": 45,
     "positionCTA": "BOTTOM",
-    "components": ["icon_headline", "body", "media", "cta"],
+    "components": ["media", "icon_headline","body","cta"],
     "enable_ua_check": true
   },
   "native_onboarding_fullscreen_1_4": {
@@ -122,7 +122,7 @@
     "colorCTA": "default",
     "heightCTA": 45,
     "positionCTA": "BOTTOM",
-    "components": ["icon_headline", "body", "media", "cta"],
+    "components": ["media", "icon_headline","body","cta"],
     "enable_ua_check": true
   },
   "native_onboarding_fullscreen_2_4": {
@@ -131,7 +131,7 @@
     "colorCTA": "default",
     "heightCTA": 45,
     "positionCTA": "BOTTOM",
-    "components": ["icon_headline", "body", "media", "cta"],
+    "components": ["media", "icon_headline","body","cta"],
     "enable_ua_check": true
   },
   "native_permission": {
