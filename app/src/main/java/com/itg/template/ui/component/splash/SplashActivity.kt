@@ -4,6 +4,7 @@ import android.os.CountDownTimer
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
+import com.ads.module.admob.Admob
 import com.ads.module.admob.AppOpenManager
 import com.ads.module.ads.ERainAd
 import com.ads.module.funtion.AdCallback
@@ -40,29 +41,33 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
     private fun shouldShowLanguageNextTime() = showLanguageNextTime
 
     private val uriVideo = "asset:///video_splash.mp4".toUri()
-    private val isHasVideo = false
+    private val isHasVideo = true
     private val isFromUninstallShortcut: Boolean
         get() = intent.getStringExtra(AppConstants.FROM_SHORTCUT) == AppConstants.ACTION_OPEN_UNINSTALL
 
     override fun getLayoutActivity() = R.layout.activity_splash
 
+    override fun onActivityBackPressed() {
+        handleDoubleBackToExit()
+    }
+
     override fun initViews() {
         super.initViews()
 
-        ITGTrackingHelper.logEvent(EventTracking.SPLASH,null)
+        initVideoSplash()
+
+        ITGTrackingHelper.logEvent(EventTracking.SPLASH, null)
         RemoteConfigUtils.init(this, this)
         consentHandler = ConsentHandler(
             activity = this,
             appSharedPref = appSharedPref,
             trackingSuffix = 1,
-            onConsentFlowCompleted = { loadingRemoteConfig() }
-        )
+            onConsentFlowCompleted = { loadingRemoteConfig() })
         if (appSharedPref.isConfirmConsent.not() && appSharedPref.isUserGlobal.not() && isNetwork()) {
             consentHandler.requestConsent()
         } else {
             loadingRemoteConfig()
         }
-        initVideoSplash()
 
     }
 
@@ -104,14 +109,12 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
 
 
     private fun checkRemoteConfigResult() {
-        ITGTrackingHelper.logEvent(EventTracking.REQUEST_AD,null)
+        ITGTrackingHelper.logEvent(EventTracking.REQUEST_AD, null)
         AdRemoteConfig.initialize(this, RemoteConfigUtils.getAdRemoteConfig())
         loadSplashBanner()
         if (!isFromUninstallShortcut) {
             loadNativeLanguage(
-                this@SplashActivity,
-                appSharedPref.firstLanguage,
-                R.layout.layout_native_language
+                this@SplashActivity, appSharedPref.firstLanguage, R.layout.layout_native_language
             )
         }
         val splashInterConfig = if (isFromUninstallShortcut) {
@@ -121,26 +124,21 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
         }
         if (splashInterConfig.isEnable && isNetwork(this@SplashActivity)) {
             ERainAd.getInstance().loadSplashInterstitialAds(
-                this,
-                splashInterConfig.id,
-                30000,
-                5000,
-                object : AdCallback() {
+                this, splashInterConfig.id, 30000, 5000, object : AdCallback() {
                     override fun onNextAction() {
                         super.onNextAction()
-                        ITGTrackingHelper.logEvent(EventTracking.SPLASH_USER_CLOSE_AD,null)
+                        ITGTrackingHelper.logEvent(EventTracking.SPLASH_USER_CLOSE_AD, null)
                         moveActivity()
                     }
 
                     override fun onAdLoaded() {
                         super.onAdLoaded()
-                        ITGTrackingHelper.logEvent(EventTracking.SPLASH_AD_LOAD,null)
+                        ITGTrackingHelper.logEvent(EventTracking.SPLASH_AD_LOAD, null)
                     }
                 })
         } else {
             moveActivity()
         }
-
         if (ResumeAdsEntryRule.shouldEnableOpenResume()) {
             AppOpenManager.getInstance().setAppResumeAdId(AdRemoteConfig.open_resume.id)
             AppOpenManager.getInstance().enableAppResume()
@@ -156,10 +154,7 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
             AdRemoteConfig.banner_splash
         }
         AdsManager.loadBanner(
-            this,
-            bannerConfig,
-            mBinding.frBanner,
-            isCollapse = false
+            this, bannerConfig, mBinding.frBanner, isCollapse = false
         )
     }
 
@@ -167,8 +162,11 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
         stopVideo()
         when {
             isFromUninstallShortcut -> Routes.startConfirmUninstallActivity(this)
-            shouldShowLanguageNextTime() || appSharedPref.firstOnBoarding ->
-                Routes.startLanguageActivity(this, null)
+            shouldShowLanguageNextTime() || appSharedPref.firstOnBoarding -> Routes.startLanguageActivity(
+                this,
+                null
+            )
+
             else -> Routes.startMainActivity(this)
         }
         finish()
@@ -188,8 +186,7 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
 
     override fun onResume() {
         super.onResume()
-        ERainAd.getInstance()
-            .onCheckShowSplashWhenFail(this@SplashActivity, object : AdCallback() {
+        ERainAd.getInstance().onCheckShowSplashWhenFail(this@SplashActivity, object : AdCallback() {
                 override fun onNextAction() {
                     super.onNextAction()
                     moveActivity()

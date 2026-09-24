@@ -36,6 +36,14 @@ class LanguageActivity : BaseActivity<ActivityLanguageBinding>() {
 
     override fun getLayoutActivity() = R.layout.activity_language
 
+    override fun onActivityBackPressed() {
+        if (isFromSetting) {
+            super.onActivityBackPressed()
+        } else {
+            handleDoubleBackToExit()
+        }
+    }
+
     private val fromSetting
         get() = intent.getBooleanExtra(AppConstants.KEY_SETTING, false)
 

@@ -10,6 +10,8 @@ import android.content.res.Configuration
 import android.content.res.Resources
 import android.graphics.drawable.Icon
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -47,21 +49,22 @@ class GlobalApp : AdsMultiDexApplication() {
 
     override fun onCreate() {
         super.onCreate()
-        MobileAds.initialize(this) {}
-        DevConfig.init(
-            context = this,
-            nkhStudioVersion = BuildConfig.ERAIN_STUDIO_VERSION,
-            playServicesAdsVersion = BuildConfig.PLAY_SERVICES_ADS_VERSION,
-            gdprModuleVersion = BuildConfig.GDPR_MODULE_VERSION
-        )
-
-
         instance = this
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
         initAdRemoteConfig()
-        initAds()
+
+        Handler(Looper.getMainLooper()).post {
+            MobileAds.initialize(this) {}
+            DevConfig.init(
+                context = this,
+                nkhStudioVersion = BuildConfig.ERAIN_STUDIO_VERSION,
+                playServicesAdsVersion = BuildConfig.PLAY_SERVICES_ADS_VERSION,
+                gdprModuleVersion = BuildConfig.GDPR_MODULE_VERSION
+            )
+            initAds()
+        }
 
         // Unconditionally register lifecycle observer and callbacks so dynamic welcome/resume toggling works during testing
         ProcessLifecycleOwner.get().lifecycle.addObserver(AppLifecycleObserver())

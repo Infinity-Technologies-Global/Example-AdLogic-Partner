@@ -51,7 +51,7 @@ class AdRemoteConfigJsonAdapterFactory : JsonAdapter.Factory {
                 var enableUaCheck = false
                 var reloadIntervalSeconds: Int? = null
                 var colorCTA = "default"
-                var heightCTA = 40
+                var heightCTA = 45
                 var positionCTA = "BOTTOM"
                 var components: List<String> = listOf("icon_headline", "body", "media", "cta")
                 reader.beginObject()

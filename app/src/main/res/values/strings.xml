@@ -3,6 +3,7 @@
     <string name="language" translatable="false">Language</string>
     <string name="ads_are_about_to_be_shown">Ads are about to be shown...</string>
     <string name="please_select_language">Please select language</string>
+    <string name="press_back_again_to_exit">Press back again to exit</string>
     <string name="get_started">Get Started</string>
     <string name="next">next</string>
     <string name="txt_continue">Continue</string>

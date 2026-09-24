@@ -43,7 +43,7 @@ fun populateNativeAdView(
 
     adView.findViewById<View>(R.id.ad_call_to_action)?.let { ctaButton ->
         ctaButton.updateLayoutParams {
-            val rawHeightDp = config?.heightCTA ?: 40
+            val rawHeightDp = config?.heightCTA ?: 45
             val clampedHeightDp = rawHeightDp.coerceIn(36, 52)
             height = clampedHeightDp.dpToPx(activity).toInt()
 

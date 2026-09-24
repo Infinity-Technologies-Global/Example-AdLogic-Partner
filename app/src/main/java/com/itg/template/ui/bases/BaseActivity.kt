@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -109,6 +110,17 @@ abstract class BaseActivity<VB : ViewDataBinding> : AppCompatActivity() {
 
     open fun onActivityBackPressed() {
         finish()
+    }
+
+    private var lastBackPressedTime = 0L
+
+    protected fun handleDoubleBackToExit(timeWindowMs: Long = 2000) {
+        if (lastBackPressedTime + timeWindowMs > System.currentTimeMillis()) {
+            finish()
+        } else {
+            lastBackPressedTime = System.currentTimeMillis()
+            Toast.makeText(this, R.string.press_back_again_to_exit, Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun setUpSystemBars() {

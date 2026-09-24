@@ -8,7 +8,7 @@ data class AdUnitConfig(
     val enableUaCheck: Boolean = false,
     val reloadIntervalSeconds: Int? = null,
     val colorCTA: String = "default",
-    val heightCTA: Int = 40,
+    val heightCTA: Int = 45,
     val positionCTA: String = "BOTTOM",
     val components: List<String> = listOf("icon_headline", "body", "media", "cta")
 )
