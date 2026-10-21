@@ -39,10 +39,16 @@ class WelcomeActivity : BaseActivity<ActivityWelcomeBinding>() {
     }
 
     override fun onClickViews() {
-        mBinding.btnStart.click {
-            if (!mBinding.tvStart.isShown) return@click
-            AdsManager.showInterWelcome(this) { finish() }
-        }
+        mBinding.btnStart.click { closeWithInter() }
+    }
+
+    override fun onActivityBackPressed() {
+        closeWithInter()
+    }
+
+    private fun closeWithInter() {
+        if (!mBinding.tvStart.isShown) return
+        AdsManager.showInterWelcome(this) { finish() }
     }
 
     override fun onDestroy() {
