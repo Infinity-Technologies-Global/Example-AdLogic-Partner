@@ -6,12 +6,10 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
-import android.os.SystemClock
 import android.util.Log
 import android.view.LayoutInflater
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.MutableLiveData
 import com.ads.module.admob.AppOpenManager
 import com.ads.module.ads.ERainAd
@@ -56,10 +54,26 @@ object AdsManager {
     private var rewardExample :RewardedAd? = null
 
     private const val DEFAULT_OPEN_SPLASH_TIMEOUT_MS = 15_000L
+    // Same timings as the single-unit inter splash in SplashActivity.
+    private const val DEFAULT_INTER_SPLASH_TIMEOUT_MS = 30_000L
+    private const val INTER_SPLASH_MIN_DELAY_MS = 5_000L
+    private const val SPLASH_AD_RESUME_CHECK_DELAY_MS = 1000
 
-    private var openSplashGate: OpenSplashGate? = null
-    private var openSplashActivity: AppCompatActivity? = null
-    private var openSplashCallback: AdCallback? = null
+    // Splash ad (app open or high floor inter) in progress.
+    private var splashAdListener: AdCallback? = null
+    private var splashAdCheckOnResume: ((AppCompatActivity, AdCallback) -> Unit)? = null
+    private val splashAdShowCallback = object : AdCallback() {
+        override fun onNextAction() {
+            super.onNextAction()
+            completeSplashAd()
+        }
+
+        override fun onAdClicked() {
+            super.onAdClicked()
+            // Keeps app open resume from covering the splash ad when the user comes back.
+            AppOpenManager.getInstance().setDisableAdResumeByClickAction(true)
+        }
+    }
 
     private fun loadNativeInternal(
         activity: Activity,
@@ -102,8 +116,9 @@ object AdsManager {
         layoutRes: Int,
         liveData: MutableLiveData<ApNativeAd?>,
     ) {
-        val highId = HighFloorIds.idOf(highConfig)
-        if (highId == null
+        val highId = highConfig.id
+        if (!highConfig.isEnable
+            || highId.isBlank()
             || !config.isEnable
             || AppPurchase.getInstance().isPurchased(activity)
             || !activity.isNetworkAvailable()
@@ -157,15 +172,80 @@ object AdsManager {
 
     fun isOpenSplashEnabled(): Boolean = AdRemoteConfig.open_splash.isEnable
 
-    /**
-     * Loads the high floor app open unit first and the normal unit only after high fails.
-     * Nothing is shown after the timeout, and [callback] gets `onAdLoaded` when an ad is shown
-     * and `onNextAction` exactly once.
-     */
+    /** Without a usable high floor unit the inter splash keeps its single-unit flow. */
+    fun isInterSplashHighFloorEnabled(): Boolean {
+        val highConfig = AdRemoteConfig.inter_splash_high
+        return highConfig.isEnable && highConfig.id.isNotBlank()
+    }
+
     fun loadOpenSplash(activity: AppCompatActivity, callback: AdCallback) {
-        releaseOpenSplash()
         val config = AdRemoteConfig.open_splash
-        val ids = HighFloorIds.resolve(AdRemoteConfig.open_splash_high, config)
+        loadSplashAd(
+            activity,
+            callback,
+            config,
+            AdRemoteConfig.open_splash_high,
+            timeoutMs = config.timeoutMs ?: DEFAULT_OPEN_SPLASH_TIMEOUT_MS,
+            load = { ids, timeoutMs, loadCallback ->
+                AppOpenManager.getInstance()
+                    .loadAndShowOpenSplashSequentially(activity, ids, timeoutMs, loadCallback)
+            },
+            show = { showActivity, showCallback ->
+                AppOpenManager.getInstance().showOpenSplashSequentially(showActivity, showCallback)
+            },
+            checkOnResume = { resumedActivity, showCallback ->
+                AppOpenManager.getInstance().onCheckShowOpenSplashSequentiallyWhenFail(
+                    resumedActivity, showCallback, SPLASH_AD_RESUME_CHECK_DELAY_MS
+                )
+            }
+        )
+    }
+
+    fun loadHighFloorInterSplash(activity: AppCompatActivity, callback: AdCallback) {
+        val config = AdRemoteConfig.inter_splash
+        loadSplashAd(
+            activity,
+            callback,
+            config,
+            AdRemoteConfig.inter_splash_high,
+            timeoutMs = config.timeoutMs ?: DEFAULT_INTER_SPLASH_TIMEOUT_MS,
+            load = { ids, timeoutMs, loadCallback ->
+                ERainAd.getInstance().loadInterSplashPrioritySequentially(
+                    activity, ids, timeoutMs, INTER_SPLASH_MIN_DELAY_MS, loadCallback
+                )
+            },
+            show = { showActivity, showCallback ->
+                ERainAd.getInstance().onShowSplashPrioritySequentially(showActivity, showCallback)
+            },
+            checkOnResume = { resumedActivity, showCallback ->
+                ERainAd.getInstance().onCheckShowSplashPrioritySequentiallyWhenFail(
+                    resumedActivity, showCallback, SPLASH_AD_RESUME_CHECK_DELAY_MS
+                )
+            }
+        )
+    }
+
+    /**
+     * Loads [highConfig]'s unit first and [config]'s unit only after it fails, then shows the ad
+     * through [show]. An ad that is ready while the splash is in the background is kept by the SDK
+     * and shown by [checkOnResume]; [callback] gets `onAdLoaded` when an ad is ready and
+     * `onNextAction` exactly once.
+     */
+    private fun loadSplashAd(
+        activity: AppCompatActivity,
+        callback: AdCallback,
+        config: AdUnitConfig,
+        highConfig: AdUnitConfig,
+        timeoutMs: Long,
+        load: (ids: List<String>, timeoutMs: Long, loadCallback: AdCallback) -> Unit,
+        show: (activity: AppCompatActivity, showCallback: AdCallback) -> Unit,
+        checkOnResume: (activity: AppCompatActivity, showCallback: AdCallback) -> Unit,
+    ) {
+        releaseSplashAd()
+        val ids = listOf(highConfig, config)
+            .filter { it.isEnable && it.id.isNotBlank() }
+            .map { it.id }
+            .distinct()
         if (!config.isEnable
             || ids.isEmpty()
             || AppPurchase.getInstance().isPurchased(activity)
@@ -174,81 +254,49 @@ object AdsManager {
             callback.onNextAction()
             return
         }
-        val timeoutMs = config.timeoutMs ?: DEFAULT_OPEN_SPLASH_TIMEOUT_MS
-        val gate = OpenSplashGate(SystemClock.elapsedRealtime(), timeoutMs)
-        openSplashGate = gate
-        openSplashActivity = activity
-        openSplashCallback = callback
-        AppOpenManager.getInstance().loadAndShowOpenSplashSequentially(
-            activity, ids, timeoutMs, object : AdCallback() {
-                override fun onAdSplashReady() {
-                    super.onAdSplashReady()
-                    Log.d("Newads", "onAdSplashReady")
-                    onOpenSplashReady(gate)
-                }
-
-                override fun onNextAction() {
-                    super.onNextAction()
-                    Log.d("Newads", "onNextAction")
-                    if (gate.giveUp()) completeOpenSplash()
-                }
-            })
-    }
-
-    /** Call from the splash `onResume`: shows an ad that became ready while in background. */
-    fun onOpenSplashResumed() {
-        val gate = openSplashGate ?: return
-        when (gate.onResumed(SystemClock.elapsedRealtime())) {
-            OpenSplashGate.ResumeAction.SHOW -> showOpenSplash(gate)
-            OpenSplashGate.ResumeAction.FINISH -> if (gate.finish()) completeOpenSplash()
-            OpenSplashGate.ResumeAction.NONE -> Unit
-        }
-    }
-
-    /** Call from the splash `onDestroy`; later SDK callbacks are ignored. */
-    fun releaseOpenSplash() {
-        openSplashGate?.finish()
-        openSplashGate = null
-        openSplashActivity = null
-        openSplashCallback = null
-    }
-
-    private fun onOpenSplashReady(gate: OpenSplashGate) {
-        val activity = openSplashActivity ?: return
-        val isForeground = activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
-        if (gate.onAdReady(SystemClock.elapsedRealtime(), isForeground) == OpenSplashGate.ReadyAction.SHOW) {
-            showOpenSplash(gate)
-        }
-    }
-
-    private fun showOpenSplash(gate: OpenSplashGate) {
-        val activity = openSplashActivity ?: return
-        openSplashCallback?.onAdLoaded()
-        // The SDK calls onNextAction after the ad closes and also after it fails to show.
-        AppOpenManager.getInstance().showOpenSplashSequentially(activity, object : AdCallback() {
-            override fun onNextAction() {
-                super.onNextAction()
-                if (gate.finish()) completeOpenSplash()
+        splashAdListener = callback
+        splashAdCheckOnResume = checkOnResume
+        load(ids, timeoutMs, object : AdCallback() {
+            override fun onAdSplashReady() {
+                super.onAdSplashReady()
+                Log.d("Newads", "onAdSplashReady")
+                val listener = splashAdListener ?: return
+                listener.onAdLoaded()
+                // In background the SDK keeps the ad for checkOnResume instead of showing it.
+                show(activity, splashAdShowCallback)
             }
 
-            override fun onAdClicked() {
-                super.onAdClicked()
-                // Keeps app open resume from covering the splash ad when the user comes back.
-                AppOpenManager.getInstance().setDisableAdResumeByClickAction(true)
+            override fun onNextAction() {
+                super.onNextAction()
+                Log.d("Newads", "onNextAction")
+                completeSplashAd()
             }
         })
     }
 
-    private fun completeOpenSplash() {
-        val callback = openSplashCallback
-        releaseOpenSplash()
-        callback?.onNextAction()
+    /** Call from the splash `onResume`: shows an ad the SDK kept while the app was in background. */
+    fun onSplashAdResumed(activity: AppCompatActivity) {
+        splashAdCheckOnResume?.invoke(activity, splashAdShowCallback)
+    }
+
+    /** Call from the splash `onDestroy`; later SDK callbacks are ignored. */
+    fun releaseSplashAd() {
+        splashAdListener = null
+        splashAdCheckOnResume = null
+    }
+
+    // Both SDK show calls end with onNextAction, after the ad closes or fails to show.
+    private fun completeSplashAd() {
+        val callback = splashAdListener ?: return
+        releaseSplashAd()
+        callback.onNextAction()
     }
 
     /** Points app open resume at the high floor unit first, falling back to the normal one. */
     fun applyOpenResumeAdIds() {
+        val highConfig = AdRemoteConfig.open_resume_high
         AppOpenManager.getInstance().setAppResumeAdId(
-            HighFloorIds.idOf(AdRemoteConfig.open_resume_high),
+            highConfig.id.takeIf { highConfig.isEnable && it.isNotBlank() },
             AdRemoteConfig.open_resume.id
         )
     }

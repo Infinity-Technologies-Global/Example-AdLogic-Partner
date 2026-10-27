@@ -3,6 +3,9 @@ package com.itg.template.ads
 val AdRemoteConfig.Companion.inter_splash: AdUnitConfig
     get() = getInstance().inter_splash
 
+val AdRemoteConfig.Companion.inter_splash_high: AdUnitConfig
+    get() = getInstance().inter_splash_high
+
 val AdRemoteConfig.Companion.inter_splash_uninstall: AdUnitConfig
     get() = getInstance().inter_splash_uninstall
 

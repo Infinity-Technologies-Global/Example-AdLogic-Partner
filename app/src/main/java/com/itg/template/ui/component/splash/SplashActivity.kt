@@ -34,7 +34,8 @@ import dagger.hilt.android.AndroidEntryPoint
 class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.Listener {
 
     private var getConfigSuccess = false
-    private var isOpenSplashFlow = false
+    // Open splash or high floor inter splash, both loaded sequentially through AdsManager.loadSplashAd.
+    private var isHighFloorSplashFlow = false
     private var showLanguageNextTime = true
     private var simpleExoPlayer: ExoPlayer? = null
     private lateinit var consentHandler: ConsentHandler
@@ -131,11 +132,12 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
                 this@SplashActivity, appSharedPref.firstLanguage, R.layout.layout_native_language
             )
         }
-        isOpenSplashFlow = !isFromUninstallShortcut && AdsManager.isOpenSplashEnabled()
-        if (isOpenSplashFlow) {
-            AdsManager.loadOpenSplash(this, splashAdCallback)
-        } else {
-            loadInterSplash()
+        isHighFloorSplashFlow = !isFromUninstallShortcut
+                && (AdsManager.isOpenSplashEnabled() || AdsManager.isInterSplashHighFloorEnabled())
+        when {
+            !isHighFloorSplashFlow -> loadInterSplash()
+            AdsManager.isOpenSplashEnabled() -> AdsManager.loadOpenSplash(this, splashAdCallback)
+            else -> AdsManager.loadHighFloorInterSplash(this, splashAdCallback)
         }
         if (ResumeAdsEntryRule.shouldEnableOpenResume()) {
             AdsManager.applyOpenResumeAdIds()
@@ -199,8 +201,8 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
 
     override fun onResume() {
         super.onResume()
-        if (isOpenSplashFlow) {
-            AdsManager.onOpenSplashResumed()
+        if (isHighFloorSplashFlow) {
+            AdsManager.onSplashAdResumed(this)
             return
         }
         ERainAd.getInstance().onCheckShowSplashWhenFail(this@SplashActivity, object : AdCallback() {
@@ -220,7 +222,7 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
         if (::consentHandler.isInitialized) {
             consentHandler.clear()
         }
-        AdsManager.releaseOpenSplash()
+        AdsManager.releaseSplashAd()
         stopVideo()
         simpleExoPlayer?.release()
         simpleExoPlayer = null

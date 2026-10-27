@@ -4,6 +4,11 @@
     "isEnable": true,
     "enable_ua_check": false
   },
+  "inter_splash_high": {
+    "id": "",
+    "isEnable": false,
+    "enable_ua_check": false
+  },
   "inter_splash_uninstall": {
     "id": "ca-app-pub-7208941695689653/1200371069",
     "isEnable": true,
