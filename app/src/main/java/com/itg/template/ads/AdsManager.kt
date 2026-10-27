@@ -6,10 +6,14 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.os.SystemClock
+import android.util.Log
 import android.view.LayoutInflater
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.MutableLiveData
+import com.ads.module.admob.AppOpenManager
 import com.ads.module.ads.ERainAd
 import com.ads.module.ads.wrapper.ApInterstitialAd
 import com.ads.module.ads.wrapper.ApNativeAd
@@ -51,6 +55,12 @@ object AdsManager {
 
     private var rewardExample :RewardedAd? = null
 
+    private const val DEFAULT_OPEN_SPLASH_TIMEOUT_MS = 15_000L
+
+    private var openSplashGate: OpenSplashGate? = null
+    private var openSplashActivity: AppCompatActivity? = null
+    private var openSplashCallback: AdCallback? = null
+
     private fun loadNativeInternal(
         activity: Activity,
         config: AdUnitConfig,
@@ -81,11 +91,50 @@ object AdsManager {
             })
     }
 
+    /**
+     * Tries [highConfig]'s unit first and falls back to [loadNativeInternal] with [config],
+     * which stays the placement's switch and supplies the CTA style.
+     */
+    private fun loadNativeHighFloor(
+        activity: Activity,
+        highConfig: AdUnitConfig,
+        config: AdUnitConfig,
+        layoutRes: Int,
+        liveData: MutableLiveData<ApNativeAd?>,
+    ) {
+        val highId = HighFloorIds.idOf(highConfig)
+        if (highId == null
+            || !config.isEnable
+            || AppPurchase.getInstance().isPurchased(activity)
+            || !activity.isNetworkAvailable()
+        ) {
+            loadNativeInternal(activity, config, layoutRes, liveData)
+            return
+        }
+        ERainAd.getInstance()
+            .loadNativeAdResultCallback(activity, highId, layoutRes, object : AdCallback() {
+                override fun onNativeAdLoaded(nativeAd: ApNativeAd) {
+                    super.onNativeAdLoaded(nativeAd)
+                    adConfigMap[nativeAd] = config
+                    liveData.postValue(nativeAd)
+                }
+
+                override fun onAdFailedToLoad(adError: LoadAdError?) {
+                    super.onAdFailedToLoad(adError)
+                    Timber.d("Native high floor %s failed, falling back to %s", highId, config.id)
+                    loadNativeInternal(activity, config, layoutRes, liveData)
+                }
+            })
+    }
+
     fun loadNativeLanguage(activity: Activity, isFirst: Boolean, layoutRes: Int) {
         val config =
             if (isFirst) AdRemoteConfig.native_language_1 else AdRemoteConfig.native_language_2
-        loadNativeInternal(
+        val highConfig =
+            if (isFirst) AdRemoteConfig.native_language_1_high else AdRemoteConfig.native_language_2_high
+        loadNativeHighFloor(
             activity,
+            highConfig,
             config,
             layoutRes,
             nativeLanguageAdLive
@@ -95,11 +144,112 @@ object AdsManager {
     fun loadNativeLanguageClick(activity: Activity, isFirst: Boolean, layoutRes: Int) {
         val config =
             if (isFirst) AdRemoteConfig.native_language_1_click else AdRemoteConfig.native_language_2_click
-        loadNativeInternal(
+        val highConfig =
+            if (isFirst) AdRemoteConfig.native_language_1_click_high else AdRemoteConfig.native_language_2_click_high
+        loadNativeHighFloor(
             activity,
+            highConfig,
             config,
             layoutRes,
             nativeLanguageClickAdLive
+        )
+    }
+
+    fun isOpenSplashEnabled(): Boolean = AdRemoteConfig.open_splash.isEnable
+
+    /**
+     * Loads the high floor app open unit first and the normal unit only after high fails.
+     * Nothing is shown after the timeout, and [callback] gets `onAdLoaded` when an ad is shown
+     * and `onNextAction` exactly once.
+     */
+    fun loadOpenSplash(activity: AppCompatActivity, callback: AdCallback) {
+        releaseOpenSplash()
+        val config = AdRemoteConfig.open_splash
+        val ids = HighFloorIds.resolve(AdRemoteConfig.open_splash_high, config)
+        if (!config.isEnable
+            || ids.isEmpty()
+            || AppPurchase.getInstance().isPurchased(activity)
+            || !activity.isNetworkAvailable()
+        ) {
+            callback.onNextAction()
+            return
+        }
+        val timeoutMs = config.timeoutMs ?: DEFAULT_OPEN_SPLASH_TIMEOUT_MS
+        val gate = OpenSplashGate(SystemClock.elapsedRealtime(), timeoutMs)
+        openSplashGate = gate
+        openSplashActivity = activity
+        openSplashCallback = callback
+        AppOpenManager.getInstance().loadAndShowOpenSplashSequentially(
+            activity, ids, timeoutMs, object : AdCallback() {
+                override fun onAdSplashReady() {
+                    super.onAdSplashReady()
+                    Log.d("Newads", "onAdSplashReady")
+                    onOpenSplashReady(gate)
+                }
+
+                override fun onNextAction() {
+                    super.onNextAction()
+                    Log.d("Newads", "onNextAction")
+                    if (gate.giveUp()) completeOpenSplash()
+                }
+            })
+    }
+
+    /** Call from the splash `onResume`: shows an ad that became ready while in background. */
+    fun onOpenSplashResumed() {
+        val gate = openSplashGate ?: return
+        when (gate.onResumed(SystemClock.elapsedRealtime())) {
+            OpenSplashGate.ResumeAction.SHOW -> showOpenSplash(gate)
+            OpenSplashGate.ResumeAction.FINISH -> if (gate.finish()) completeOpenSplash()
+            OpenSplashGate.ResumeAction.NONE -> Unit
+        }
+    }
+
+    /** Call from the splash `onDestroy`; later SDK callbacks are ignored. */
+    fun releaseOpenSplash() {
+        openSplashGate?.finish()
+        openSplashGate = null
+        openSplashActivity = null
+        openSplashCallback = null
+    }
+
+    private fun onOpenSplashReady(gate: OpenSplashGate) {
+        val activity = openSplashActivity ?: return
+        val isForeground = activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+        if (gate.onAdReady(SystemClock.elapsedRealtime(), isForeground) == OpenSplashGate.ReadyAction.SHOW) {
+            showOpenSplash(gate)
+        }
+    }
+
+    private fun showOpenSplash(gate: OpenSplashGate) {
+        val activity = openSplashActivity ?: return
+        openSplashCallback?.onAdLoaded()
+        // The SDK calls onNextAction after the ad closes and also after it fails to show.
+        AppOpenManager.getInstance().showOpenSplashSequentially(activity, object : AdCallback() {
+            override fun onNextAction() {
+                super.onNextAction()
+                if (gate.finish()) completeOpenSplash()
+            }
+
+            override fun onAdClicked() {
+                super.onAdClicked()
+                // Keeps app open resume from covering the splash ad when the user comes back.
+                AppOpenManager.getInstance().setDisableAdResumeByClickAction(true)
+            }
+        })
+    }
+
+    private fun completeOpenSplash() {
+        val callback = openSplashCallback
+        releaseOpenSplash()
+        callback?.onNextAction()
+    }
+
+    /** Points app open resume at the high floor unit first, falling back to the normal one. */
+    fun applyOpenResumeAdIds() {
+        AppOpenManager.getInstance().setAppResumeAdId(
+            HighFloorIds.idOf(AdRemoteConfig.open_resume_high),
+            AdRemoteConfig.open_resume.id
         )
     }
 

@@ -195,4 +195,7 @@ dependencies {
 
     // Crash Module
     implementation project(':crash_screen')
+
+    // Testing
+    testImplementation "junit:junit:$junit_version"
 }

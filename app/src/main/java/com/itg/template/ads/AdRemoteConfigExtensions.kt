@@ -12,20 +12,41 @@ val AdRemoteConfig.Companion.banner_splash: AdUnitConfig
 val AdRemoteConfig.Companion.banner_splash_uninstall: AdUnitConfig
     get() = getInstance().banner_splash_uninstall
 
+val AdRemoteConfig.Companion.open_splash: AdUnitConfig
+    get() = getInstance().open_splash
+
+val AdRemoteConfig.Companion.open_splash_high: AdUnitConfig
+    get() = getInstance().open_splash_high
+
 val AdRemoteConfig.Companion.open_resume: AdUnitConfig
     get() = getInstance().open_resume
+
+val AdRemoteConfig.Companion.open_resume_high: AdUnitConfig
+    get() = getInstance().open_resume_high
 
 val AdRemoteConfig.Companion.native_language_1: AdUnitConfig
     get() = getInstance().native_language_1
 
+val AdRemoteConfig.Companion.native_language_1_high: AdUnitConfig
+    get() = getInstance().native_language_1_high
+
 val AdRemoteConfig.Companion.native_language_1_click: AdUnitConfig
     get() = getInstance().native_language_1_click
+
+val AdRemoteConfig.Companion.native_language_1_click_high: AdUnitConfig
+    get() = getInstance().native_language_1_click_high
 
 val AdRemoteConfig.Companion.native_language_2: AdUnitConfig
     get() = getInstance().native_language_2
 
+val AdRemoteConfig.Companion.native_language_2_high: AdUnitConfig
+    get() = getInstance().native_language_2_high
+
 val AdRemoteConfig.Companion.native_language_2_click: AdUnitConfig
     get() = getInstance().native_language_2_click
+
+val AdRemoteConfig.Companion.native_language_2_click_high: AdUnitConfig
+    get() = getInstance().native_language_2_click_high
 
 val AdRemoteConfig.Companion.native_onboarding_1_1: AdUnitConfig
     get() = getInstance().native_onboarding_1_1

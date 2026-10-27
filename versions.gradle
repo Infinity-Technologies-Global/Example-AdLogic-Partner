@@ -66,7 +66,7 @@ ext {
     firebase_crashlytics_gradle_version = '3.0.5'
     
     // Ads & Billing
-    erain_studio_version = '2.1'
+    erain_studio_version = '2.2'
     module_update_gdpr_version = '2.0.2'
     play_review_ktx_version = '2.0.2'
     play_services_ads_version = '24.7.0'
@@ -75,7 +75,10 @@ ext {
     // Media
     media3_exoplayer_version = '1.8.0'
     media3_ui_version = '1.8.0'
-    
+
+    // Testing
+    junit_version = '4.13.2'
+
     // Leak Canary (commented out)
     // leakcanary_version = '2.14'
 }

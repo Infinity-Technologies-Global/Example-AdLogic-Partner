@@ -17,7 +17,6 @@ import com.itg.template.ads.banner_splash
 import com.itg.template.ads.banner_splash_uninstall
 import com.itg.template.ads.inter_splash
 import com.itg.template.ads.inter_splash_uninstall
-import com.itg.template.ads.open_resume
 import com.itg.template.app.AppConstants
 import com.itg.template.app.ResumeAdsEntryRule
 import com.itg.template.data.event.EventTracking
@@ -35,6 +34,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.Listener {
 
     private var getConfigSuccess = false
+    private var isOpenSplashFlow = false
     private var showLanguageNextTime = true
     private var simpleExoPlayer: ExoPlayer? = null
     private lateinit var consentHandler: ConsentHandler
@@ -44,6 +44,20 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
     private val isHasVideo = true
     private val isFromUninstallShortcut: Boolean
         get() = intent.getStringExtra(AppConstants.FROM_SHORTCUT) == AppConstants.ACTION_OPEN_UNINSTALL
+
+    // Shared by the open splash and the inter splash flows.
+    private val splashAdCallback = object : AdCallback() {
+        override fun onNextAction() {
+            super.onNextAction()
+            ITGTrackingHelper.logEvent(EventTracking.SPLASH_USER_CLOSE_AD, null)
+            moveActivity()
+        }
+
+        override fun onAdLoaded() {
+            super.onAdLoaded()
+            ITGTrackingHelper.logEvent(EventTracking.SPLASH_AD_LOAD, null)
+        }
+    }
 
     override fun getLayoutActivity() = R.layout.activity_splash
 
@@ -117,6 +131,21 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
                 this@SplashActivity, appSharedPref.firstLanguage, R.layout.layout_native_language
             )
         }
+        isOpenSplashFlow = !isFromUninstallShortcut && AdsManager.isOpenSplashEnabled()
+        if (isOpenSplashFlow) {
+            AdsManager.loadOpenSplash(this, splashAdCallback)
+        } else {
+            loadInterSplash()
+        }
+        if (ResumeAdsEntryRule.shouldEnableOpenResume()) {
+            AdsManager.applyOpenResumeAdIds()
+            AppOpenManager.getInstance().enableAppResume()
+        } else {
+            AppOpenManager.getInstance().disableAppResume()
+        }
+    }
+
+    private fun loadInterSplash() {
         val splashInterConfig = if (isFromUninstallShortcut) {
             AdRemoteConfig.inter_splash_uninstall
         } else {
@@ -124,26 +153,10 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
         }
         if (splashInterConfig.isEnable && isNetwork(this@SplashActivity)) {
             ERainAd.getInstance().loadSplashInterstitialAds(
-                this, splashInterConfig.id, 30000, 5000, object : AdCallback() {
-                    override fun onNextAction() {
-                        super.onNextAction()
-                        ITGTrackingHelper.logEvent(EventTracking.SPLASH_USER_CLOSE_AD, null)
-                        moveActivity()
-                    }
-
-                    override fun onAdLoaded() {
-                        super.onAdLoaded()
-                        ITGTrackingHelper.logEvent(EventTracking.SPLASH_AD_LOAD, null)
-                    }
-                })
+                this, splashInterConfig.id, 30000, 5000, splashAdCallback
+            )
         } else {
             moveActivity()
-        }
-        if (ResumeAdsEntryRule.shouldEnableOpenResume()) {
-            AppOpenManager.getInstance().setAppResumeAdId(AdRemoteConfig.open_resume.id)
-            AppOpenManager.getInstance().enableAppResume()
-        } else {
-            AppOpenManager.getInstance().disableAppResume()
         }
     }
 
@@ -186,6 +199,10 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
 
     override fun onResume() {
         super.onResume()
+        if (isOpenSplashFlow) {
+            AdsManager.onOpenSplashResumed()
+            return
+        }
         ERainAd.getInstance().onCheckShowSplashWhenFail(this@SplashActivity, object : AdCallback() {
                 override fun onNextAction() {
                     super.onNextAction()
@@ -203,6 +220,7 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
         if (::consentHandler.isInitialized) {
             consentHandler.clear()
         }
+        AdsManager.releaseOpenSplash()
         stopVideo()
         simpleExoPlayer?.release()
         simpleExoPlayer = null

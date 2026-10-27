@@ -138,20 +138,41 @@ data class AdRemoteConfig(
     val banner_splash_uninstall: AdUnitConfig
         get() = getAdUnit("banner_splash_uninstall")
 
+    val open_splash: AdUnitConfig
+        get() = getAdUnit("open_splash")
+
+    val open_splash_high: AdUnitConfig
+        get() = getAdUnit("open_splash_high")
+
     val open_resume: AdUnitConfig
         get() = getAdUnit("open_resume")
+
+    val open_resume_high: AdUnitConfig
+        get() = getAdUnit("open_resume_high")
 
     val native_language_1: AdUnitConfig
         get() = getAdUnit("native_language_1")
 
+    val native_language_1_high: AdUnitConfig
+        get() = getAdUnit("native_language_1_high")
+
     val native_language_1_click: AdUnitConfig
         get() = getAdUnit("native_language_1_click")
+
+    val native_language_1_click_high: AdUnitConfig
+        get() = getAdUnit("native_language_1_click_high")
 
     val native_language_2: AdUnitConfig
         get() = getAdUnit("native_language_2")
 
+    val native_language_2_high: AdUnitConfig
+        get() = getAdUnit("native_language_2_high")
+
     val native_language_2_click: AdUnitConfig
         get() = getAdUnit("native_language_2_click")
+
+    val native_language_2_click_high: AdUnitConfig
+        get() = getAdUnit("native_language_2_click_high")
 
     val native_onboarding_1_1: AdUnitConfig
         get() = getAdUnit("native_onboarding_1_1")

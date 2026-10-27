@@ -478,8 +478,7 @@ class MainActivity : BaseActivityWithBanner<ActivityMainBinding>() {
 
             // Dynamically enable/disable AppOpenManager based on mode
             if (mode == ResumeAdsEntryMode.OPEN_RESUME) {
-                val openResumeId = AdRemoteConfig.open_resume.id
-                AppOpenManager.getInstance().setAppResumeAdId(openResumeId)
+                AdsManager.applyOpenResumeAdIds()
                 AppOpenManager.getInstance().enableAppResume()
             } else {
                 AppOpenManager.getInstance().disableAppResume()

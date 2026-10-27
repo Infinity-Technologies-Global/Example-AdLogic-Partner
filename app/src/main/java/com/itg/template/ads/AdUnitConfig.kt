@@ -7,6 +7,7 @@ data class AdUnitConfig(
     val isEnable: Boolean,
     val enableUaCheck: Boolean = false,
     val reloadIntervalSeconds: Int? = null,
+    val timeoutMs: Long? = null,
     val colorCTA: String = "default",
     val heightCTA: Int = 45,
     val positionCTA: String = "BOTTOM",
