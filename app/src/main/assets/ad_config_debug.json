@@ -28,13 +28,13 @@
   },
   "open_splash": {
     "id": "ca-app-pub-3940256099942544/9257395921",
-    "isEnable": false,
+    "isEnable": true,
     "timeoutMs": 15000,
     "enable_ua_check": false
   },
   "open_splash_high": {
     "id": "ca-app-pub-3940256099942544/9257395921",
-    "isEnable": false,
+    "isEnable": true,
     "enable_ua_check": false
   },
   "open_resume": {
