@@ -169,9 +169,6 @@ object AdsManager {
             nativeLanguageClickAdLive
         )
     }
-
-    fun isOpenSplashEnabled(): Boolean = AdRemoteConfig.open_splash.isEnable
-
     /** Without a usable high floor unit the inter splash keeps its single-unit flow. */
     fun isInterSplashHighFloorEnabled(): Boolean {
         val highConfig = AdRemoteConfig.inter_splash_high

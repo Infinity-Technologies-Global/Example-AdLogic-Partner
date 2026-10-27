@@ -17,6 +17,7 @@ import com.itg.template.ads.banner_splash
 import com.itg.template.ads.banner_splash_uninstall
 import com.itg.template.ads.inter_splash
 import com.itg.template.ads.inter_splash_uninstall
+import com.itg.template.ads.open_splash
 import com.itg.template.app.AppConstants
 import com.itg.template.app.ResumeAdsEntryRule
 import com.itg.template.data.event.EventTracking
@@ -34,8 +35,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.Listener {
 
     private var getConfigSuccess = false
-    // Open splash or high floor inter splash, both loaded sequentially through AdsManager.loadSplashAd.
-    private var isHighFloorSplashFlow = false
+    private var isSequentialSplashAd = false
     private var showLanguageNextTime = true
     private var simpleExoPlayer: ExoPlayer? = null
     private lateinit var consentHandler: ConsentHandler
@@ -132,12 +132,10 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
                 this@SplashActivity, appSharedPref.firstLanguage, R.layout.layout_native_language
             )
         }
-        isHighFloorSplashFlow = !isFromUninstallShortcut
-                && (AdsManager.isOpenSplashEnabled() || AdsManager.isInterSplashHighFloorEnabled())
-        when {
-            !isHighFloorSplashFlow -> loadInterSplash()
-            AdsManager.isOpenSplashEnabled() -> AdsManager.loadOpenSplash(this, splashAdCallback)
-            else -> AdsManager.loadHighFloorInterSplash(this, splashAdCallback)
+        if (!isFromUninstallShortcut && AdRemoteConfig.open_splash.isEnable) {
+            loadOpenSplash()
+        } else {
+            loadInterSplash()
         }
         if (ResumeAdsEntryRule.shouldEnableOpenResume()) {
             AdsManager.applyOpenResumeAdIds()
@@ -147,7 +145,17 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
         }
     }
 
+    private fun loadOpenSplash() {
+        isSequentialSplashAd = true
+        AdsManager.loadOpenSplash(this, splashAdCallback)
+    }
+
     private fun loadInterSplash() {
+        if (!isFromUninstallShortcut && AdsManager.isInterSplashHighFloorEnabled()) {
+            isSequentialSplashAd = true
+            AdsManager.loadHighFloorInterSplash(this, splashAdCallback)
+            return
+        }
         val splashInterConfig = if (isFromUninstallShortcut) {
             AdRemoteConfig.inter_splash_uninstall
         } else {
@@ -201,7 +209,7 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>(), RemoteConfigUtils.
 
     override fun onResume() {
         super.onResume()
-        if (isHighFloorSplashFlow) {
+        if (isSequentialSplashAd) {
             AdsManager.onSplashAdResumed(this)
             return
         }
