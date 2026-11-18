@@ -4,8 +4,6 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.ads.module.admob.AppOpenManager
 import com.ads.module.billing.AppPurchase
-import com.itg.template.ui.component.language.LanguageActivity
-import com.itg.template.ui.component.onboarding.OnBoardingActivity
 import com.itg.template.ui.component.splash.SplashActivity
 import com.itg.template.ui.component.uninstall.SurveyActivity
 import com.itg.template.ui.component.welcome.WelcomeActivity
@@ -14,9 +12,9 @@ import com.itg.template.utils.Routes
 class AppLifecycleObserver : DefaultLifecycleObserver {
 
     private val listActivityDisableResume = arrayListOf(
+        // Language / Onboarding are not listed: users returning from background on those
+        // screens also get the Welcome Back screen.
         SplashActivity::class.java,
-        LanguageActivity::class.java,
-        OnBoardingActivity::class.java,
         WelcomeActivity::class.java,
         SurveyActivity::class.java,
     )
