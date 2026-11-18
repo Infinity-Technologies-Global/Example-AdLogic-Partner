@@ -15,6 +15,7 @@ import com.ads.module.ads.ERainAd
 import com.ads.module.ads.wrapper.ApInterstitialAd
 import com.ads.module.ads.wrapper.ApNativeAd
 import com.ads.module.ads.wrapper.ApRewardAd
+import com.ads.module.ads.wrapper.StatusAd
 import com.ads.module.billing.AppPurchase
 import com.ads.module.funtion.AdCallback
 import com.ads.module.funtion.AdType
@@ -200,10 +201,15 @@ object AdsManager {
     // An ad that loaded but was never shown (user left before it arrived) is reused on the next
     // visit; once shown, expired, or no longer allowed, a new one is requested.
     // All access happens on the main thread (WelcomeActivity.initViews and SDK callbacks).
+    //
+    // State comes from the SDK where it exists:
+    //  - shown:  ApNativeAd.status. The SDK sets AD_LOADED when it creates the ad and never sets
+    //            AD_RENDER_SUCCESS itself, so we set it after rendering (markNativeWelcomeShown).
+    //  - usable: ApNativeAd.isNotReady (isReady itself is package-private in the SDK).
+    // The SDK keeps neither a load time nor an in-flight flag for natives (the ApNativeAd only
+    // exists once loaded), so those two stay custom: loadedAt and nativeWelcomeLoadingSince.
 
-    private class NativeWelcomeSlot(val ad: ApNativeAd, val loadedAt: Long) {
-        var shown = false
-    }
+    private class NativeWelcomeSlot(val ad: ApNativeAd, val loadedAt: Long)
 
     private const val NATIVE_WELCOME_MAX_AGE_MS = 55 * 60 * 1000L
     private const val NATIVE_WELCOME_LOAD_TIMEOUT_MS = 30 * 1000L
@@ -230,7 +236,11 @@ object AdsManager {
         }
 
         val slot = nativeWelcomeSlot
-        if (slot != null && !slot.shown && now - slot.loadedAt < NATIVE_WELCOME_MAX_AGE_MS) {
+        if (slot != null
+            && !slot.ad.isNotReady
+            && slot.ad.status != StatusAd.AD_RENDER_SUCCESS
+            && now - slot.loadedAt < NATIVE_WELCOME_MAX_AGE_MS
+        ) {
             nativeWelcomeAdLive.value = slot.ad
             return
         }
@@ -246,7 +256,7 @@ object AdsManager {
 
     /** Called once the native welcome is rendered; the next visit loads a new ad. */
     fun markNativeWelcomeShown(ad: ApNativeAd) {
-        nativeWelcomeSlot?.takeIf { it.ad === ad }?.shown = true
+        ad.status = StatusAd.AD_RENDER_SUCCESS
     }
 
     // ── Dashboard / Test helpers (ignore shouldDisplay) ──
