@@ -150,3 +150,10 @@ fabric.properties
 ._*
 .Spotlight-V100
 .Trashes
+
+# Local docs / AI notes (not pushed)
+/AGENTS.md
+/CLAUDE.md
+/CONSENT_INTEGRATION_GUIDE.*.txt
+/ads-audit-output/
+/docs/

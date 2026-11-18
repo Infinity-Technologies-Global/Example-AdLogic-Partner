@@ -310,7 +310,7 @@ object AdsManager {
                 .isPurchased(context) && allowShow
         ) {
             ERainAd.getInstance()
-                .forceShowInterstitial(context, interstitial, object : AdCallback() {
+                .forceShowInterstitialNotDelay(context, interstitial, object : AdCallback() {
                     override fun onNextAction() {
                         super.onNextAction()
                         interWelcomeAdLive = MutableLiveData()
