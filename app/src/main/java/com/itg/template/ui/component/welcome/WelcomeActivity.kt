@@ -77,5 +77,6 @@ class WelcomeActivity : BaseActivity<ActivityWelcomeBinding>() {
             ad,
             mBinding.frAds,
             mBinding.shimmerAds.shimmerNativeLarge)
+        AdsManager.markNativeWelcomeShown(ad)
     }
 }
