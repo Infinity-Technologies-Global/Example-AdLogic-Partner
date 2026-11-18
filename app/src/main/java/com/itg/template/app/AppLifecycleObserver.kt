@@ -3,7 +3,10 @@ package com.itg.template.app
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.ads.module.admob.AppOpenManager
+import com.ads.module.ads.ERainAd
 import com.ads.module.billing.AppPurchase
+import com.itg.template.ads.AdRemoteConfig
+import com.itg.template.ads.inter_welcome
 import com.itg.template.ui.component.splash.SplashActivity
 import com.itg.template.ui.component.uninstall.SurveyActivity
 import com.itg.template.ui.component.welcome.WelcomeActivity
@@ -28,6 +31,9 @@ class AppLifecycleObserver : DefaultLifecycleObserver {
             if (!isDisable && ResumeAdsEntryRule.shouldShowWelcomeOnResume()
                 && !AppOpenManager.getInstance().isInterstitialShowing
                 && !AppPurchase.getInstance().isPurchased(currentActivity.applicationContext)
+                // Version B keeps the app's existing Welcome rule: when inter_welcome is limited to
+                // non-organic users, organic users do not get the Welcome Back screen.
+                && ERainAd.getInstance().getShouldDisplayInterWelcomeBack(AdRemoteConfig.inter_welcome.enableUaCheck)
             ) {
                 if (AppOpenManager.getInstance().isDisableAdResumeByClickAction)
                     AppOpenManager.getInstance().isDisableAdResumeByClickAction = false
