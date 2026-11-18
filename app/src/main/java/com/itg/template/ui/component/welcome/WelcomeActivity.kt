@@ -45,11 +45,6 @@ class WelcomeActivity : BaseActivity<ActivityWelcomeBinding>() {
         }
     }
 
-    // Back behaves exactly like Start (same guard, same inter, same debounce).
-    override fun onActivityBackPressed() {
-        mBinding.btnStart.performClick()
-    }
-
     override fun onDestroy() {
         mBinding.btnStart.handler?.removeCallbacksAndMessages(null)
         super.onDestroy()

@@ -23,7 +23,7 @@
   },
   "open_resume": {
     "id": "ca-app-pub-7208941695689653/4237597942",
-    "isEnable": true,
+    "isEnable": false,
     "enable_ua_check": false
   },
   "native_language_1": {
@@ -183,7 +183,7 @@
   },
   "native_welcome": {
     "id": "ca-app-pub-7208941695689653/9849017274",
-    "isEnable": false,
+    "isEnable": true,
     "colorCTA": "default",
     "heightCTA": 45,
     "positionCTA": "BOTTOM",
@@ -192,7 +192,7 @@
   },
   "inter_welcome": {
     "id": "ca-app-pub-7208941695689653/1200371069",
-    "isEnable": false,
+    "isEnable": true,
     "enable_ua_check": true
   },
   "reward_example": {
