@@ -6,6 +6,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.os.SystemClock
 import android.view.LayoutInflater
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
@@ -57,6 +58,7 @@ object AdsManager {
         layoutRes: Int,
         liveData: MutableLiveData<ApNativeAd?>,
         shouldDisplay: Boolean = true,
+        onResult: ((ApNativeAd?) -> Unit)? = null,
     ) {
         if (!config.isEnable
             || AppPurchase.getInstance().isPurchased(activity)
@@ -64,6 +66,7 @@ object AdsManager {
             || !shouldDisplay
         ) {
             liveData.postValue(null)
+            onResult?.invoke(null)
             return
         }
         ERainAd.getInstance()
@@ -72,11 +75,13 @@ object AdsManager {
                     super.onNativeAdLoaded(nativeAd)
                     adConfigMap[nativeAd] = config
                     liveData.postValue(nativeAd)
+                    onResult?.invoke(nativeAd)
                 }
 
                 override fun onAdFailedToLoad(adError: LoadAdError?) {
                     super.onAdFailedToLoad(adError)
                     liveData.postValue(null)
+                    onResult?.invoke(null)
                 }
             })
     }
@@ -191,14 +196,57 @@ object AdsManager {
         )
     }
 
+    // ── Native welcome back ──
+    // An ad that loaded but was never shown (user left before it arrived) is reused on the next
+    // visit; once shown, expired, or no longer allowed, a new one is requested.
+    // All access happens on the main thread (WelcomeActivity.initViews and SDK callbacks).
+
+    private class NativeWelcomeSlot(val ad: ApNativeAd, val loadedAt: Long) {
+        var shown = false
+    }
+
+    private const val NATIVE_WELCOME_MAX_AGE_MS = 55 * 60 * 1000L
+    private const val NATIVE_WELCOME_LOAD_TIMEOUT_MS = 30 * 1000L
+
+    private var nativeWelcomeSlot: NativeWelcomeSlot? = null
+
+    /** elapsedRealtime when the in-flight request started; 0 = no request in flight. */
+    private var nativeWelcomeLoadingSince = 0L
+
     fun loadNativeWelcome(activity: Activity, layoutRes: Int) {
-        loadNativeInternal(
-            activity,
-            AdRemoteConfig.native_welcome,
-            layoutRes,
-            nativeWelcomeAdLive,
-            ERainAd.getInstance().getShouldDisplayNativeWelcomeBack(AdRemoteConfig.native_welcome.enableUaCheck)
-        )
+        val config = AdRemoteConfig.native_welcome
+        val shouldDisplay = ERainAd.getInstance().getShouldDisplayNativeWelcomeBack(config.enableUaCheck)
+        if (!config.isEnable || AppPurchase.getInstance().isPurchased(activity) || !shouldDisplay) {
+            nativeWelcomeSlot = null
+            nativeWelcomeAdLive.value = null
+            return
+        }
+
+        val now = SystemClock.elapsedRealtime()
+        // A request is still in flight: its result will be posted to nativeWelcomeAdLive.
+        // Past the timeout the request is treated as lost so loading never stays blocked.
+        if (nativeWelcomeLoadingSince != 0L && now - nativeWelcomeLoadingSince < NATIVE_WELCOME_LOAD_TIMEOUT_MS) {
+            return
+        }
+
+        val slot = nativeWelcomeSlot
+        if (slot != null && !slot.shown && now - slot.loadedAt < NATIVE_WELCOME_MAX_AGE_MS) {
+            nativeWelcomeAdLive.value = slot.ad
+            return
+        }
+
+        nativeWelcomeSlot = null
+        nativeWelcomeAdLive.value = null
+        nativeWelcomeLoadingSince = now
+        loadNativeInternal(activity, config, layoutRes, nativeWelcomeAdLive, shouldDisplay) { ad ->
+            nativeWelcomeLoadingSince = 0L
+            nativeWelcomeSlot = ad?.let { NativeWelcomeSlot(it, SystemClock.elapsedRealtime()) }
+        }
+    }
+
+    /** Called once the native welcome is rendered; the next visit loads a new ad. */
+    fun markNativeWelcomeShown(ad: ApNativeAd) {
+        nativeWelcomeSlot?.takeIf { it.ad === ad }?.shown = true
     }
 
     // ── Dashboard / Test helpers (ignore shouldDisplay) ──
@@ -442,6 +490,8 @@ object AdsManager {
         nativeSurveyAdLive.postValue(null)
         nativeConfirmUninstallAdLive.postValue(null)
         nativeWelcomeAdLive.postValue(null)
+        nativeWelcomeSlot = null
+        nativeWelcomeLoadingSince = 0L
         interWelcomeAdLive = MutableLiveData()
         interSplashAd = null
         interOnboarding = null
